@@ -1,0 +1,5 @@
+#define NODE_FONTNAME             "monospace"
+#define NODE_FILLCOLOR            "#C0C0FF"
+#define EMPTY_NODE_FILLCOLOR      "#C0C0C0"
+#define NODE_SHAPE                "Mrecord"
+#define NODE_STYLE                "filled"

@@ -4,7 +4,7 @@
 #include <assert.h>
 
 
-BiTreeStatus create_root(tree_elem_t value, Node **out_root) {
+BiTreeStatus bt_create(bitree_elem_t value, Node **out_root) {
     assert(out_root != NULL);
 
     Node *root = calloc(1, sizeof(Node));
@@ -18,49 +18,47 @@ BiTreeStatus create_root(tree_elem_t value, Node **out_root) {
     return BITREE_OK;
 }
 
-BiTreeStatus node_destroy(Node *node)  {
+BiTreeStatus bt_destroy(Node *node)  {
     assert(node != NULL);
 
     if (node->left != NULL)
-        node_destroy(node->left);
+        bt_destroy(node->left);
     if (node->right != NULL)
-        node_destroy(node->right);
+        bt_destroy(node->right);
 
     free(node);
 
     return BITREE_OK;
 }
 
-BiTreeStatus add_left_child(Node *node, tree_elem_t value, Node **out_child) {
-    assert(node != NULL);
-    assert(out_child != NULL);
+BiTreeStatus bt_add(Node *parent, ChildKind kind, bitree_elem_t value, Node **out_child) {
+    assert(parent != NULL);
 
     Node *new_node = calloc(1, sizeof(Node));
     if (new_node == NULL)
         return BITREE_ALLOC_ERROR;
 
     new_node->value = value;
-    node->left = new_node;
 
-    *out_child = new_node;
+    if (kind == BT_LEFT_CHILD)
+        parent->left = new_node;
+    else if (kind == BT_RIGHT_CHILD)
+        parent->right = new_node;
+    else
+        return BITREE_UNKNOWN_CHILD_KIND;
+
+    if (out_child != NULL)
+        *out_child = new_node;
 
     return BITREE_OK;
 }
 
-BiTreeStatus add_right_child(Node *node, tree_elem_t value, Node **out_child) {
-    assert(node != NULL);
-    assert(out_child != NULL);
+BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **out_child) { // TODO: do we have to repeat asserts?
+    return bt_add(node, BT_RIGHT_CHILD, value, out_child);
+}
 
-    Node *new_node = calloc(1, sizeof(Node));
-    if (new_node == NULL)
-        return BITREE_ALLOC_ERROR;
-
-    new_node->value = value;
-    node->right = new_node;
-
-    *out_child = new_node;
-
-    return BITREE_OK;
+BiTreeStatus bt_add_left(Node *node, bitree_elem_t value, Node **out_child) {
+    return bt_add(node, BT_LEFT_CHILD, value, out_child);
 }
 
 

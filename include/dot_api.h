@@ -11,9 +11,9 @@ typedef struct {
 
 void start_digraph(FILE *dot_file);
 void set_default_style(FILE *dot_file);
-void init_node(FILE *dot_file, ssize_t ind, const char *fillcolor, const char *label);
-void init_normal_node(FILE *dot_file, ssize_t ind, bitree_elem_t label);
-void init_empty_node(FILE *dot_file, ssize_t ind);
-void connect_nodes(FILE *dot_file, ssize_t first, ssize_t second, const char *);
+void init_node(FILE *dot_file, const void *ind, const char *style, const char *label);
+void init_normal_node(FILE *dot_file, const void *ind, bitree_elem_t label);
+void init_empty_node(FILE *dot_file, const void *ind);
+void connect_nodes(FILE *dot_file, const void *first, const void *second, const char *);
+void connect_placeholder(FILE *dot_file, const void *first, const char *tag);
 void end_digraph(FILE *dot_file);
-

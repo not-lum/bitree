@@ -19,7 +19,7 @@ int main() {
     Node *root = NULL;
     BiTreeStatus status = tree_sort(arr1, arr1_len, &root);
     if (status != BITREE_OK)
-        fprintf(stderr, "Error while sorting tree: %d\n", status);
+        fprintf(stderr, "Error while sorting tree: %s\n", bt_error_str(status));
 
     for (size_t i = 0; i < arr1_len; i++)
         printf("%d ", arr1[i]);
@@ -27,8 +27,7 @@ int main() {
 
     FILE *logfile = fopen(DOT_FILENAME, "w");
 
-    size_t counter = 0;
-    bt_dump_to_dot(root, logfile, &counter);
+    bt_dump_to_dot(root, logfile);
 
     fclose(logfile);
 
@@ -36,12 +35,7 @@ int main() {
     form_cmd(cmd, DOT_FILENAME, IMG_FILENAME);
     system(cmd);
 
-    char bt_str[200] = {};
-    size_t curr_len = 0;
-    bt_dump_to_str(root, BT_PREORDER, bt_str, &curr_len);
-    printf("%s\n", bt_str);
-
-    bt_destroy(root);
+    bt_destroy(root, NULL);
 }
 
 BiTreeStatus tree_sort(int arr[], size_t len, Node **out_root) {

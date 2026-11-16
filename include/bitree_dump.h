@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../include/bitree.h"
 
 #include <stdio.h>
@@ -11,8 +13,14 @@ typedef enum {
     BT_POSTORDER
 } WalkKind;
 
-void bt_dump_to_str(Node *root, WalkKind kind, char out_buff[], size_t *);
+typedef struct {
+    char *buff;
+    size_t curr_len;
+} BtStrContext;
+
+BiTreeStatus compile_dot(const char* inp_filename, const char *out_filename);
+void bt_print(Node *root, WalkKind kind, FILE *ctx);
 bool form_cmd(char cmd[MAX_CMD_LEN],
-    const char *inp_filename,
-    const char *out_filename);
-void bt_dump_to_dot(Node *root, FILE *logfile, size_t *counter);
+              const char *inp_filename,
+              const char *out_filename);
+void bt_dump_to_dot(Node *root, FILE *ctx);

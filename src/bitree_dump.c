@@ -25,57 +25,125 @@ bool form_cmd(char cmd[MAX_CMD_LEN],
     return true;
 }
 
-void bt_dump_to_str(Node *root, WalkKind kind, char out_buff[], size_t *curr_len) {
-    assert(root != NULL);
-    assert(out_buff != NULL);
-    // printf("out_buff from dump: <%s>[%p]\n", out_buff, out_buff);
+BiTreeStatus compile_dot(const char* inp_filename, const char *out_filename) {
+    assert(inp_filename != NULL);
+    assert(out_filename != NULL);
 
-    *curr_len += sprintf(out_buff + *curr_len, "(");
-    *curr_len += sprintf(out_buff + *curr_len, BITREE_ELEM_FMT, root->value);
-
-    if (root->left != NULL)
-        bt_dump_to_str(root->left, kind, out_buff, curr_len);    
-    
-    if (root->right != NULL)
-        bt_dump_to_str(root->right, kind, out_buff, curr_len);
-
-    *curr_len += sprintf(out_buff + *curr_len, ")");
+    char cmd[MAX_CMD_LEN] = {};
+    if (form_cmd(cmd, inp_filename, out_filename)) {
+        system(cmd);
+        return BITREE_OK;
+    } else
+        return BITREE_UNABLE_TO_FORM_CMD;
 }
 
-void bt_dump_to_dot(Node *root, FILE *dot_file, size_t *counter) {
-    assert(dot_file != NULL);
-    assert(counter != NULL);
+static void bt_preorder_print(Node *node, BtWalkState state, void *ctx) {
+    assert(ctx != NULL);
 
-    if (*counter == 0) {
-        start_digraph(dot_file);
-        set_default_style(dot_file);
+    FILE *file = (FILE *)ctx;
+
+    switch (state) {
+        case BT_ENTER:
+            fprintf(file, "(" BITREE_ELEM_FMT, node->value);
+            break;
+        case BT_IN:
+            break;
+        case BT_LEAVE:
+            fputs(")", file);
+            break;
+        case BT_EMPTY:
+            fputs("#", file);
+            break;
     }
-    
-    if (root == NULL) {
-        init_empty_node(dot_file, *counter);
+}
+
+static void bt_inorder_print(Node *node, BtWalkState state, void *ctx) {
+    assert(ctx != NULL);
+
+    FILE *file = (FILE *)ctx;
+
+    switch (state) {
+        case BT_ENTER:
+            fputs("(", file);
+            break;
+        case BT_IN:
+            fprintf(file, BITREE_ELEM_FMT, node->value);
+            break;
+        case BT_LEAVE:
+            fputs(")", file);
+            break;
+        case BT_EMPTY:
+            fputs("#", file);
+            break;
+    }
+}
+
+static void bt_postorder_print(Node *node, BtWalkState state, void *ctx) {
+    assert(ctx != NULL);
+
+    FILE *file = (FILE *)ctx;
+
+    switch (state) {
+        case BT_ENTER:
+            fputs("(", file);
+            break;
+        case BT_IN:
+            break;
+        case BT_LEAVE:
+            fprintf(file, BITREE_ELEM_FMT ")", node->value);
+            break;
+        case BT_EMPTY:
+            fputs("#", file);
+            break;
+    }
+}
+
+static void bt_dot_dump_node(Node *node, BtWalkState state, void *ctx) {
+    assert(ctx != NULL);
+
+    if (state != BT_ENTER)
         return;
+
+    FILE *file = ctx;
+
+    init_normal_node(file, node, node->value);
+
+    if (node->left != NULL)
+        connect_nodes(file, node, node->left, NULL);
+    else
+        connect_placeholder(file, node, "L");
+
+    if (node->right != NULL)
+        connect_nodes(file, node, node->right, NULL);
+    else
+        connect_placeholder(file, node, "R");
+}
+
+void bt_print(Node *root, WalkKind kind, FILE *ctx) {
+    assert(root != NULL);
+    assert(ctx != NULL);
+
+    switch (kind) {
+        case BT_PREORDER:
+            bt_walk(root, &bt_preorder_print, ctx);
+            break;
+        case BT_INORDER:
+            bt_walk(root, &bt_inorder_print, ctx);
+            break;
+        case BT_POSTORDER:
+            bt_walk(root, &bt_postorder_print, ctx);
+            break;
     }
+}
 
-    init_normal_node(dot_file, *counter, root->value);
-    size_t root_ind = *counter;
-    (*counter)++;
+void bt_dump_to_dot(Node *root, FILE *dot_file) {
+    assert(root != NULL);
+    assert(dot_file != NULL);
 
-    if (root->left == NULL)
-        connect_nodes(dot_file, root_ind, *counter, "invis");
-    else
-        connect_nodes(dot_file, root_ind, *counter, NULL);
+    start_digraph(dot_file);
+    set_default_style(dot_file);
 
-    bt_dump_to_dot(root->left, dot_file, counter);
-    (*counter)++;
+    bt_walk(root, &bt_dot_dump_node, dot_file);
 
-    if (root->right == NULL)
-        connect_nodes(dot_file, root_ind, *counter, "invis");
-    else
-        connect_nodes(dot_file, root_ind, *counter, NULL);
-
-    bt_dump_to_dot(root->right, dot_file, counter);
-    (*counter)++;
-
-    if (root_ind == 0)
-        end_digraph(dot_file);
+    end_digraph(dot_file);
 }

@@ -68,7 +68,7 @@ char *deser_str(char *buff, bitree_elem_t *out_elem) {
     size_t counter = 0;
 
     while (*(buff + counter) != '"') {
-        fprintf(stderr, "next: %c\n", *buff);
+        fprintf(stderr, "next: %c\n", *(buff + counter));
         counter++;
     }
 
@@ -79,7 +79,7 @@ char *deser_str(char *buff, bitree_elem_t *out_elem) {
     memcpy(*out_elem, buff, counter);
     (*out_elem)[counter] = '\0';
 
-    return buff;
+    return (buff + counter);
 }
 
 int main() {

@@ -5,29 +5,36 @@
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
-
+#include <stdarg.h>
 
 #define DOT_FILENAME "/tmp/tree_dump.dot"
 #define IMG_FILENAME "./b.png"
 #define MAX_STR_SIZE 1024
 #define MAX_FILENAME_LEN 128
 
-
-static void read_bd(const char *filename, Node **out_node) {
-    assert(filename != NULL);
-    assert(out_node != NULL);
+static void read_bd(AkiContext *ctx) {
+    assert(ctx != NULL);
 
     LoadedFile l_file = {};
-    FileStatus f_status = load_file_alloc(&l_file, filename);
+    // if we alloc every node, we don't need this. TODO: remove
+    FileStatus f_status = load_file_alloc(&l_file, ctx->db_filename); 
     if (f_status != FS_OK)
         return;
 
     Node *node = NULL;
-    BiTreeStatus bt_status = bt_deserialize((char *)l_file.content, out_node);
+    BiTreeStatus bt_status = bt_deserialize((char *)l_file.content, &ctx->root);
     if (bt_status != BITREE_OK)
         return;
 
     destroy_loaded_file(&l_file);
+}
+
+static void save_bd(AkiContext *ctx) {
+    assert(ctx != NULL);
+
+    FILE *file = fopen(ctx->db_filename, "w");
+    bt_serialize(ctx->root, file);
+    fclose(file);
 }
 
 static bool parse_char(char *out_buff) {
@@ -41,64 +48,113 @@ static bool parse_char(char *out_buff) {
     return true;
 }
 
-static AkiAnswer ask(const char *text) {
+static AkiAnswer ask(const char *text, ...) {
     assert(text != NULL);
 
-    printf("> %s? (y/n)\n", text);
-    char answer = '\0';
-    if (!parse_char(&answer))
-        return AKI_INVALID;
+    va_list args = {};
+    va_start(args, text);
 
-    if (answer == 'y' || answer == 'Y') {
-        return AKI_YES;
-    } else if (answer == 'n' || answer == 'N') {
-        return AKI_NO;
+    AkiAnswer res = AKI_INVALID;
+    while (res == AKI_INVALID) {
+        vprintf(text, args);
+        printf("? (y/n)\n");
+
+        char answer = '\0';
+        if (!parse_char(&answer))
+            continue;
+
+        if (answer == 'y' || answer == 'Y') {
+            res = AKI_YES;
+        } else if (answer == 'n' || answer == 'N') {
+            res = AKI_NO;
+        }
     }
 
-    return AKI_INVALID;
+    va_end(args);
+    return res;
 }
 
-static void add_object(Node *parent, BtChildKind ch_kind) {
+static char *aki_getline(const char *prompt, ...) {
+    assert(prompt != NULL);
+
+    va_list args = {};
+    va_start(args, prompt);
+
+    vprintf(prompt, args);
+
+    va_end(args);
+
+    char *line = NULL;
+    size_t size = 0;
+    ssize_t len = getline(&line, &size, stdin);
+    line[len - 1] = '\0';
+    
+    return line;
+}
+
+static void add_object(Node *parent, BtChildKind ch_kind, AkiContext *ctx) {
     assert(parent != NULL);
 
-    fputs("Unknown object!\n"
-          "What is it? ", stdout);
-            
-    char *line = calloc(MAX_STR_SIZE, sizeof(char));
-    ssize_t read = scanf(" %s", line);
+    char *line = aki_getline("Uknown object!\n"
+                             "What is it? ");
     
     bt_add(parent, ch_kind, line, NULL);
 
     printf("Added '%s'!\n", line);
+}
 
-    AkiAnswer ans = ask("Do you wanna save the updated tree version");
-    if (ans == AKI_YES) {
-        
+static BtChildKind switch_child_kind(BtChildKind kind) {
+    return kind ^ 1;
+}
+
+static void present_guess(Node *parent, BtChildKind ch_kind) {
+    assert(parent != NULL);
+
+    Node *guessed_obj = bt_get_child(parent, ch_kind);
+    char *guessed_obj_name = guessed_obj->value;
+
+    AkiAnswer ans = ask("I guessed it! It's \"%s\", right", guessed_obj_name);
+    if (ans == AKI_NO) {
+        char *new_obj_name = aki_getline("Then what is it? ");
+        char *diff_str = aki_getline("Explain what makes '%s' diffrent from '%s': ",
+                                      new_obj_name, guessed_obj_name);
+
+        bt_change(guessed_obj, diff_str);
+    
+        bt_add(guessed_obj, ch_kind, new_obj_name, NULL);
+        bt_add(guessed_obj, switch_child_kind(ch_kind), guessed_obj_name, NULL);
     }
 }
 
-static void guess_loop(Node *curr) {
-    assert(curr != NULL);
+static void guess_loop(AkiContext *ctx) {
+    assert(ctx != NULL);
+
+    Node *curr = ctx->root;
 
     while (true) {
-        if (node_is_leaf(curr)) {
-            printf("I guessed it! It's \"%s\"!\n", curr->value);
-            break;
-        }
-
         AkiAnswer ans = ask(curr->value);
 
-        switch (ans) {
+        switch (ans) { // TODO: think about copypaste here
             case AKI_YES:
                 if (curr->right == NULL) {
-                    add_object(curr, BT_RIGHT_CHILD);
+                    add_object(curr, BT_RIGHT_CHILD, ctx);
+                    save_bd(ctx);
+                    return;
+                } else if (node_is_leaf(curr->right)) {
+                    present_guess(curr, BT_RIGHT_CHILD);
+                    save_bd(ctx);
                     return;
                 }
                 curr = curr->right;
                 break;
             case AKI_NO:
                 if (curr->left == NULL) {
-                    add_object(curr, BT_LEFT_CHILD);
+                    add_object(curr, BT_LEFT_CHILD, ctx);
+                    save_bd(ctx);
+                    return;
+                } else if (node_is_leaf(curr->left)) {
+                    present_guess(curr, BT_LEFT_CHILD);
+                    save_bd(ctx);
                     return;
                 }
                 curr = curr->left;
@@ -114,31 +170,29 @@ void aki_greet() {
     fputs("Welcome to Akinator v.0.1\n", stdout);
 }
 
-static void handle_guess_action() {
-    fputs("Enter database filename:\n", stdout);
+static void handle_guess_action(AkiContext *ctx) {
+    assert(ctx != NULL);
 
-    char filename[MAX_FILENAME_LEN] = {};
-    scanf("%s", filename);
+    fputs("Enter database filename: ", stdout);
+    scanf("%s", ctx->db_filename);
 
-    Node *root = NULL;
-    read_bd(filename, &root);
-
-    Node *curr = root;
-    guess_loop(root); 
+    read_bd(ctx);
+    guess_loop(ctx); 
 
     FILE *dot_file = fopen(DOT_FILENAME, "w");
-    bt_dump_to_dot(root, dot_file);
+    bt_dump_to_dot(ctx->root, dot_file);
     fclose(dot_file);
 
     compile_dot(DOT_FILENAME, IMG_FILENAME);
 
-    bt_destroy(root);
+    bt_destroy(ctx->root);
+    ctx->root = NULL;
 }
 
 
-void aki_main_loop() {
+void aki_main_loop(AkiContext *ctx) {
     while (true) {
-        fputs("Select action:\n"
+        fputs("\nSelect action:\n"
               "1. Play akinator\n"
               "2. Quit\n", stdout);
 
@@ -148,7 +202,7 @@ void aki_main_loop() {
 
         switch (choice) {
             case '1':
-                handle_guess_action();
+                handle_guess_action(ctx);
                 break;
             case '2':
                 return;

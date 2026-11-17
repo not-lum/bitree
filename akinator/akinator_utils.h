@@ -3,7 +3,8 @@
 #include "../include/bitree.h"
 
 typedef struct {
-    const char* filename;
+    char *db_filename;
+    Node *root;
 } AkiContext;
 
 typedef enum {

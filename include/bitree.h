@@ -13,6 +13,11 @@
 
 typedef struct Node {
     bitree_elem_t value;
+
+    #ifdef BITREE_USE_PARENT_FIELD
+    struct Node *parent;
+    #endif
+
     struct Node *left;
     struct Node *right;
 } Node;
@@ -44,12 +49,16 @@ typedef void (*bt_ser_elem_func_t)(bitree_elem_t *, char *);
 
 const char *bt_error_str(BiTreeStatus status);
 BiTreeStatus bt_create(bitree_elem_t value, Node **out_root);
+void bt_change(Node *node, bitree_elem_t value);
 void bt_destroy(Node *node);
 BiTreeStatus bt_add(Node *node, BtChildKind kind, bitree_elem_t value, Node **out_child);
 BiTreeStatus bt_add_left(Node *node, bitree_elem_t value, Node **);
 BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **);
 BiTreeStatus bt_connect_left(Node *parent, Node *child);
 BiTreeStatus bt_connect_right(Node *parent, Node *child);
+Node *bt_get_child(Node *node, BtChildKind kind);
+Node *bt_get_left(Node *node);
+Node *bt_get_right(Node *node);
 BiTreeStatus bt_walk(Node *node, bt_walk_func_t func, void *ctx);
 bool node_is_leaf(Node *node);
 

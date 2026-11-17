@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#define BITREE_ELEM_IS_STR
+#define BT_USE_PARENT_FIELD
 typedef char* bitree_elem_t;
 #define BITREE_ELEM_FMT "\"%s\""
 

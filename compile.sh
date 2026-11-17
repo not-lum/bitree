@@ -1,5 +1,5 @@
 FLAGS="-g -O0 -Wall -Wextra -fsanitize=address"
-SRC="src/bitree.c src/dot_api.c src/bitree_dump.c"
+SRC="src/bitree.c src/dot_api.c src/bitree_dump.c src/bitree_serialization.c"
 
 if [ -n "$2" ];
 then

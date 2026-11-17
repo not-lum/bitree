@@ -8,7 +8,6 @@ typedef int bitree_elem_t;
 #define BT_DOT_SER_ELEM ser_int
 #define BT_DESER_ELEM   deser_int
 
-
 #include <stdio.h>
 #include <assert.h>
 

@@ -114,4 +114,11 @@ BiTreeStatus bt_walk(Node *node, bt_walk_func_t func, void *ctx) {
     return BITREE_OK;
 }
 
+bool node_is_leaf(Node *node) {
+    assert(node != NULL);
 
+    if (node->left == NULL && node->right == NULL)
+        return true;
+    
+    return false;
+}

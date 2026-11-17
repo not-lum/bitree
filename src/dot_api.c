@@ -1,5 +1,5 @@
+// #include "../include/bitree.h"
 #include "../include/dot_api.h"
-
 #include "../include/dot_theme.h"
 
 #include <stdio.h>
@@ -28,7 +28,7 @@ void set_default_style(FILE *dot_file) {
 void init_normal_node(FILE *dot_file, const void *ind, bitree_elem_t label) {
     assert(dot_file != NULL);
     
-    fprintf(dot_file, "node_%p[label=\"", ind, label);
+    fprintf(dot_file, "node_%p[label=\"", ind);
     BT_DOT_SER_ELEM(label, dot_file);
     fputs("\"];\n", dot_file);
 }

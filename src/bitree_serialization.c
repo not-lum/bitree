@@ -13,9 +13,9 @@ BiTreeStatus bt_serialize(Node *root,
     return BITREE_OK;
 }
 
-BiTreeStatus bt_deserialize(char *buff, size_t *counter,
-                            // bt_deser_elem_func_t deser,
-                            Node **out_node) {
+static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
+                                        // bt_deser_elem_func_t deser,
+                                        Node **out_node) {
     assert(buff != NULL);
     // assert(deser != NULL);
     assert(out_node != NULL);
@@ -38,20 +38,29 @@ BiTreeStatus bt_deserialize(char *buff, size_t *counter,
     
         // fprintf(stderr, "LEFT recursion:\n");
         // bt_add_left(out_node, (bitree_elem_t){}, NULL);
-        status = bt_from_dump(buff, counter, deser, &(*out_node)->left);
+        status = bt_deserialize_body(buff, counter, &(*out_node)->left);
         if (status != BITREE_OK) return status;
 
         // fprintf(stderr, "RIGHT recursion:\n");
         // bt_add_right(out_node, (bitree_elem_t){}, NULL);
-        status = bt_from_dump(buff, counter, deser, &(*out_node)->right);
+        status = bt_deserialize_body(buff, counter, &(*out_node)->right);
         if (status != BITREE_OK) return status;
     } else if (*(buff + *counter) == '#') {
         (*counter)++;
     } else {
         (*counter)++;
-        status = bt_from_dump(buff, counter, deser, out_node);
+        status = bt_deserialize_body(buff, counter, out_node);
         if (status != BITREE_OK) return status;
     }
 
     return BITREE_OK;
+}
+
+
+BiTreeStatus bt_deserialize(char *buff, Node **out_node) {
+    assert(buff != NULL);
+    assert(out_node != NULL);
+
+    size_t counter = 0;
+    return bt_deserialize_body(buff, &counter, out_node);
 }

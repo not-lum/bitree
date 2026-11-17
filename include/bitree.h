@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 // BiTree configuration:
 #ifndef BITREE_CUSTOM_CFG
@@ -50,8 +51,7 @@ BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **);
 BiTreeStatus bt_connect_left(Node *parent, Node *child);
 BiTreeStatus bt_connect_right(Node *parent, Node *child);
 BiTreeStatus bt_walk(Node *node, bt_walk_func_t func, void *ctx);
-
+bool node_is_leaf(Node *node);
 
 BiTreeStatus bt_serialize(Node *root, FILE *out_file);
-BiTreeStatus bt_deserialize(char *buff, size_t *counter,
-                            Node **out_node);
+BiTreeStatus bt_deserialize(char *buff, Node **out_node);

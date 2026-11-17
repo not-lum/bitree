@@ -25,34 +25,12 @@ void set_default_style(FILE *dot_file) {
           , dot_file);
 }
 
-void init_node(FILE *dot_file, const void *ind, const char *style, const char *label) {
-    assert(dot_file != NULL);
-    
-    fprintf(dot_file, "node_%p[", ind);
-    if (style != NULL) fprintf(dot_file, "style=\"%s\", ", style);
-    if (label != NULL) fprintf(dot_file, "label=\"%s\", ", label);
-
-    fputs("];\n", dot_file);
-}
-
 void init_normal_node(FILE *dot_file, const void *ind, bitree_elem_t label) {
     assert(dot_file != NULL);
-
-    #ifndef BITREE_ELEM_IS_STR
-        char label_str[32] = {};
-        snprintf(label_str, 32, BITREE_ELEM_FMT, label);
-
-        init_node(dot_file, ind, NULL, label_str);
-    #else
-        init_node(dot_file, ind, NULL, label);
-    #endif
-}
-
-void init_empty_node(FILE *dot_file, const void *ind) {
-    assert(dot_file != NULL);
-    assert(ind != NULL);
-
-    init_node(dot_file, ind, "invis", "");
+    
+    fprintf(dot_file, "node_%p[label=\"", ind, label);
+    BT_DOT_SER_ELEM(label, dot_file);
+    fputs("\"];\n", dot_file);
 }
 
 void connect_nodes(FILE *dot_file, const void *first, const void *second, const char *style) {

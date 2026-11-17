@@ -43,5 +43,5 @@ int main() {
     bt_print(root, BT_POSTORDER, stdout);
     putc('\n', stdout);
 
-    bt_destroy(root, NULL);
+    bt_destroy(root);
 }

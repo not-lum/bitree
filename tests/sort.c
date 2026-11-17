@@ -35,7 +35,7 @@ int main() {
     form_cmd(cmd, DOT_FILENAME, IMG_FILENAME);
     system(cmd);
 
-    bt_destroy(root, NULL);
+    bt_destroy(root);
 }
 
 BiTreeStatus tree_sort(int arr[], size_t len, Node **out_root) {

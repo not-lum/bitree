@@ -33,5 +33,5 @@ int main() {
     bt_print(root, BT_PREORDER, dumpfile);
     fclose(dumpfile);
 
-    bt_destroy(root, NULL);
+    bt_destroy(root);
 }

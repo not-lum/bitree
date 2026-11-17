@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdio.h>
 
 // BiTree configuration:
 #ifndef BITREE_CUSTOM_CFG
@@ -37,12 +38,20 @@ typedef enum {
 typedef void (*bt_walk_func_t)(Node* node, BtWalkState state, void *ctx);
 typedef void (*bt_destroy_elem_func_t)(bitree_elem_t *);
 
+typedef void (*bt_deser_elem_func_t)(char *, bitree_elem_t *);
+typedef void (*bt_ser_elem_func_t)(bitree_elem_t *, char *);
+
 const char *bt_error_str(BiTreeStatus status);
 BiTreeStatus bt_create(bitree_elem_t value, Node **out_root);
-void bt_destroy(Node *node, bt_destroy_elem_func_t);
+void bt_destroy(Node *node);
 BiTreeStatus bt_add(Node *node, BtChildKind kind, bitree_elem_t value, Node **out_child);
 BiTreeStatus bt_add_left(Node *node, bitree_elem_t value, Node **);
 BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **);
 BiTreeStatus bt_connect_left(Node *parent, Node *child);
 BiTreeStatus bt_connect_right(Node *parent, Node *child);
 BiTreeStatus bt_walk(Node *node, bt_walk_func_t func, void *ctx);
+
+
+BiTreeStatus bt_serialize(Node *root, FILE *out_file);
+BiTreeStatus bt_deserialize(char *buff, size_t *counter,
+                            Node **out_node);

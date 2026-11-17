@@ -44,7 +44,8 @@ static void bt_preorder_print(Node *node, BtWalkState state, void *ctx) {
 
     switch (state) {
         case BT_ENTER:
-            fprintf(file, "(" BITREE_ELEM_FMT, node->value);
+            fputs("(", file);
+            BT_SER_ELEM(node->value, file);
             break;
         case BT_IN:
             break;
@@ -67,7 +68,8 @@ static void bt_inorder_print(Node *node, BtWalkState state, void *ctx) {
             fputs("(", file);
             break;
         case BT_IN:
-            fprintf(file, BITREE_ELEM_FMT, node->value);
+            // fprintf(file, BITREE_ELEM_FMT, node->value);
+            BT_SER_ELEM(node->value, file);
             break;
         case BT_LEAVE:
             fputs(")", file);
@@ -90,7 +92,8 @@ static void bt_postorder_print(Node *node, BtWalkState state, void *ctx) {
         case BT_IN:
             break;
         case BT_LEAVE:
-            fprintf(file, BITREE_ELEM_FMT ")", node->value);
+            BT_SER_ELEM(node->value, file);
+            fputs(")", file);
             break;
         case BT_EMPTY:
             fputs("#", file);

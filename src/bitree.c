@@ -33,19 +33,18 @@ BiTreeStatus bt_create(bitree_elem_t value, Node **out_root) {
 }
 
 // TODO: rewrite via bt_walk:
-void bt_destroy(Node *node, bt_destroy_elem_func_t destroyer) {
+void bt_destroy(Node *node) {
     assert(node != NULL);
-    fprintf(stderr, ">>>>> node_addr: %p\n", node);
-    fprintf(stderr, ">>>>> node_left: %p\n", node->left);
-    fprintf(stderr, ">>>>> node_right: %p\n", node->right);
+    // fprintf(stderr, ">>>>> node_addr: %p\n", node);
+    // fprintf(stderr, ">>>>> node_left: %p\n", node->left);
+    // fprintf(stderr, ">>>>> node_right: %p\n", node->right);
 
     if (node->left != NULL)
-        bt_destroy(node->left, destroyer);
+        bt_destroy(node->left);
     if (node->right != NULL)
-        bt_destroy(node->right, destroyer);
+        bt_destroy(node->right);
 
-    if (destroyer != NULL)
-        destroyer(&node->value);
+    BT_DESTROY_ELEM(&node->value);
 
     free(node);
 }

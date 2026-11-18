@@ -37,7 +37,7 @@ BiTreeStatus compile_dot(const char* inp_filename, const char *out_filename) {
         return BITREE_UNABLE_TO_FORM_CMD;
 }
 
-static void bt_preorder_print(Node *node, BtWalkState state, void *ctx) {
+static bool bt_preorder_print(Node *node, BtWalkState state, void *ctx) {
     assert(ctx != NULL);
 
     FILE *file = (FILE *)ctx;
@@ -56,9 +56,11 @@ static void bt_preorder_print(Node *node, BtWalkState state, void *ctx) {
             fputs("#", file);
             break;
     }
+
+    return false;
 }
 
-static void bt_inorder_print(Node *node, BtWalkState state, void *ctx) {
+static bool bt_inorder_print(Node *node, BtWalkState state, void *ctx) {
     assert(ctx != NULL);
 
     FILE *file = (FILE *)ctx;
@@ -78,9 +80,11 @@ static void bt_inorder_print(Node *node, BtWalkState state, void *ctx) {
             fputs("#", file);
             break;
     }
+
+    return false;
 }
 
-static void bt_postorder_print(Node *node, BtWalkState state, void *ctx) {
+static bool bt_postorder_print(Node *node, BtWalkState state, void *ctx) {
     assert(ctx != NULL);
 
     FILE *file = (FILE *)ctx;
@@ -99,13 +103,15 @@ static void bt_postorder_print(Node *node, BtWalkState state, void *ctx) {
             fputs("#", file);
             break;
     }
+
+    return false;
 }
 
-static void bt_dot_dump_node(Node *node, BtWalkState state, void *ctx) {
+static bool bt_dot_dump_node(Node *node, BtWalkState state, void *ctx) {
     assert(ctx != NULL);
 
     if (state != BT_ENTER)
-        return;
+        return false;
 
     FILE *file = ctx;
 
@@ -120,6 +126,8 @@ static void bt_dot_dump_node(Node *node, BtWalkState state, void *ctx) {
         connect_nodes(file, node, node->right, NULL);
     else
         connect_placeholder(file, node, "R");
+
+    return false;
 }
 
 void bt_print(Node *root, WalkKind kind, FILE *ctx) {

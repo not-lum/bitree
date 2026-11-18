@@ -14,7 +14,7 @@
 typedef struct Node {
     bitree_elem_t value;
 
-    #ifdef BITREE_USE_PARENT_FIELD
+    #ifdef BT_USE_PARENT_FIELD
     struct Node *parent;
     #endif
 
@@ -31,6 +31,7 @@ typedef enum {
     BITREE_OK = 0,
     BITREE_ALLOC_ERROR,
     BITREE_UNABLE_TO_FORM_CMD,
+    BITREE_WALK_STOPPED,
     BITREE_ERROR
 } BiTreeStatus;
 
@@ -41,11 +42,10 @@ typedef enum {
     BT_EMPTY
 } BtWalkState;
 
-typedef void (*bt_walk_func_t)(Node* node, BtWalkState state, void *ctx);
-typedef void (*bt_destroy_elem_func_t)(bitree_elem_t *);
-
-typedef void (*bt_deser_elem_func_t)(char *, bitree_elem_t *);
-typedef void (*bt_ser_elem_func_t)(bitree_elem_t *, char *);
+typedef bool (*bt_walk_func_t)(Node* node, BtWalkState state, void *ctx);
+// typedef void (*bt_destroy_elem_func_t)(bitree_elem_t *);
+// typedef void (*bt_deser_elem_func_t)(char *, bitree_elem_t *);
+// typedef void (*bt_ser_elem_func_t)(bitree_elem_t *, char *);
 
 const char *bt_error_str(BiTreeStatus status);
 BiTreeStatus bt_create(bitree_elem_t value, Node **out_root);
@@ -54,6 +54,7 @@ void bt_destroy(Node *node);
 BiTreeStatus bt_add(Node *node, BtChildKind kind, bitree_elem_t value, Node **out_child);
 BiTreeStatus bt_add_left(Node *node, bitree_elem_t value, Node **);
 BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **);
+BiTreeStatus bt_connect(Node *parent, BtChildKind ch_kind, Node *child);
 BiTreeStatus bt_connect_left(Node *parent, Node *child);
 BiTreeStatus bt_connect_right(Node *parent, Node *child);
 Node *bt_get_child(Node *node, BtChildKind kind);

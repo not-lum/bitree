@@ -25,12 +25,18 @@ void set_default_style(FILE *dot_file) {
           , dot_file);
 }
 
-void init_normal_node(FILE *dot_file, const void *ind, bitree_elem_t label) {
+void init_normal_node(FILE *dot_file, Node *node, bitree_elem_t label) {
     assert(dot_file != NULL);
     
-    fprintf(dot_file, "node_%p[label=\"", ind);
+    fprintf(dot_file, "node_%p[label=\"{ ", node);
     BT_DOT_SER_ELEM(label, dot_file);
-    fputs("\"];\n", dot_file);
+    fprintf(dot_file, " | { left: %p | right: %p }", node->left, node->right);
+
+    #ifdef BT_USE_PARENT_FIELD
+    fprintf(dot_file, " | parent: %p ", node->parent);
+    #endif
+
+    fputs("}\"];\n", dot_file);
 }
 
 void connect_nodes(FILE *dot_file, const void *first, const void *second, const char *style) {

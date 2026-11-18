@@ -13,6 +13,8 @@ const char *bt_error_str(BiTreeStatus status) {
             return "bitree alloc failed";
         case BITREE_UNABLE_TO_FORM_CMD:
             return "unable to from cmd to compile dot";
+        case BITREE_WALK_STOPPED:
+            return "walk on tree stopped";
         default:
             return "unknown error";
     }
@@ -27,6 +29,10 @@ BiTreeStatus bt_create(bitree_elem_t value, Node **out_root) {
 
     root->value = value;
 
+    #ifdef BT_USE_PARENT_FIELD
+    root->parent = NULL;
+    #endif
+
     *out_root = root;
 
     return BITREE_OK;
@@ -34,7 +40,8 @@ BiTreeStatus bt_create(bitree_elem_t value, Node **out_root) {
 
 // TODO: rewrite via bt_walk:
 void bt_destroy(Node *node) {
-    assert(node != NULL);
+    if (node == NULL)
+        return;
     // fprintf(stderr, ">>>>> node_addr: %p\n", node);
     // fprintf(stderr, ">>>>> node_left: %p\n", node->left);
     // fprintf(stderr, ">>>>> node_right: %p\n", node->right);
@@ -49,22 +56,28 @@ void bt_destroy(Node *node) {
     free(node);
 }
 
-BiTreeStatus bt_connect_left(Node *parent, Node *child) {
+BiTreeStatus bt_connect(Node *parent, BtChildKind ch_kind, Node *child) {
     assert(parent != NULL);
     assert(child != NULL);
 
-    parent->left = child;
+    #ifdef BT_USE_PARENT_FIELD
+    child->parent = parent;
+    #endif
+
+    if (ch_kind == BT_LEFT_CHILD)
+        parent->left = child;
+    else
+        parent->right = child;
 
     return BITREE_OK;
 }
 
+BiTreeStatus bt_connect_left(Node *parent, Node *child) {
+    return bt_connect(parent, BT_LEFT_CHILD, child);
+}
+
 BiTreeStatus bt_connect_right(Node *parent, Node *child) {
-    assert(parent != NULL);
-    assert(child != NULL);
-
-    parent->right = child;
-
-    return BITREE_OK;
+    return bt_connect(parent, BT_RIGHT_CHILD, child);
 }
 
 BiTreeStatus bt_add(Node *parent, BtChildKind kind, bitree_elem_t value, Node **out_child) {
@@ -75,6 +88,10 @@ BiTreeStatus bt_add(Node *parent, BtChildKind kind, bitree_elem_t value, Node **
         return BITREE_ALLOC_ERROR;
 
     new_node->value = value;
+
+    #ifdef BT_USE_PARENT_FIELD
+    new_node->parent = parent;
+    #endif
 
     if (kind == BT_LEFT_CHILD)
         parent->left = new_node;
@@ -127,13 +144,20 @@ BiTreeStatus bt_walk(Node *node, bt_walk_func_t func, void *ctx) {
         return BITREE_OK;
     }
 
-    func(node, BT_ENTER, ctx);
-    bt_walk(node->left, func, ctx);
+    if (func(node, BT_ENTER, ctx))
+        return BITREE_WALK_STOPPED;
 
-    func(node, BT_IN, ctx);
+    if (bt_walk(node->left, func, ctx) != BITREE_OK)
+        return BITREE_WALK_STOPPED;
 
-    bt_walk(node->right, func, ctx);
-    func(node, BT_LEAVE, ctx);
+    if (func(node, BT_IN, ctx))
+        return BITREE_WALK_STOPPED;
+
+    if (bt_walk(node->right, func, ctx) != BITREE_OK)
+        return BITREE_WALK_STOPPED;
+
+    if (func(node, BT_LEAVE, ctx))
+        return BITREE_WALK_STOPPED;
 
     return BITREE_OK;
 }

@@ -7,12 +7,10 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAX_FILENAME_LEN 128
+// #define MAX_FILENAME_LEN 128
 // char buff[] = "(\"root\"(\"left\"(\"left of left\"#(\"right of left of left\"##))#)(\"abracadabra\"#(\"bibobabobus\"#(\"fffff\"#(\"aaaaa aa\"##)))))";
 int main() {
     aki_greet();
-    AkiContext ctx = {
-        .db_filename = (char [MAX_FILENAME_LEN]){}
-    };
+    AkiContext ctx = {};
     aki_main_loop(&ctx);
 }

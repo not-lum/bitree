@@ -1,5 +1,7 @@
 #include "akinator_utils.h"
 #include "../include/bitree_dump.h"
+#include "../secstack/src/secstack.h"
+
 #include "file_utils.h"
 
 #include <assert.h>
@@ -24,6 +26,8 @@ const char* aki_error_str(AkiStatus status) {
             return "error while deserializing tree";
         case AKI_TREE_SERIALIZATION_FAILED:
             return "error while serializing tree";
+        case AKI_NO_SUCH_OBJECT:
+            return "unable to find object";
         default:
             return "unknown error";
     }
@@ -38,7 +42,6 @@ static AkiStatus load_db(AkiContext *ctx) {
     if (f_status != FS_OK)
         return AKI_CANNOT_LOAD_FILE;
 
-    Node *node = NULL;
     BiTreeStatus bt_status = bt_deserialize((char *)l_file.content, &ctx->root);
     if (bt_status != BITREE_OK)
         return AKI_TREE_DESERIALIZATION_FAILED;
@@ -120,6 +123,7 @@ static char *aki_getline(const char *prompt, ...) {
 
 static void add_object(Node *parent, BtChildKind ch_kind, AkiContext *ctx) {
     assert(parent != NULL);
+    assert(ctx != NULL);
 
     char *line = aki_getline("Uknown object!\n"
                              "What is it? ");
@@ -129,9 +133,6 @@ static void add_object(Node *parent, BtChildKind ch_kind, AkiContext *ctx) {
     printf("Added '%s'!\n", line);
 }
 
-static BtChildKind switch_child_kind(BtChildKind kind) {
-    return kind ^ 1;
-}
 
 static void present_guess(Node *parent, BtChildKind ch_kind) {
     assert(parent != NULL);
@@ -147,8 +148,8 @@ static void present_guess(Node *parent, BtChildKind ch_kind) {
 
         bt_change(guessed_obj, diff_str);
     
-        bt_add(guessed_obj, ch_kind, new_obj_name, NULL);
-        bt_add(guessed_obj, switch_child_kind(ch_kind), guessed_obj_name, NULL);
+        bt_add_right(guessed_obj, new_obj_name, NULL);
+        bt_add_left(guessed_obj, guessed_obj_name, NULL);
     }
 }
 
@@ -225,13 +226,7 @@ static AkiStatus handle_guess_action(AkiContext *ctx) {
     return AKI_OK;
 }
 
-static AkiStatus handle_compare_action(AkiContext *ctx) {
-    assert(ctx != NULL);
-
-    fputs("To be done...\n", stdout);
-} 
-
-static bool node_value_is(Node *node, BtWalkState state, void *ctx) {
+static bool find_leaf_cb(Node *node, BtWalkState state, void *ctx) {
     assert(ctx != NULL);
 
     if (state != BT_LEAVE)
@@ -239,12 +234,22 @@ static bool node_value_is(Node *node, BtWalkState state, void *ctx) {
 
     AkiFindContext *find_ctx = (AkiFindContext *)ctx;
     // TODO: optimize
-    if (node_is_leaf(node) && strcasecmp(node->value, find_ctx->str) == 0) {
-        find_ctx->node = node;
+    if (node_is_leaf(node) && strcasecmp(node->value, find_ctx->target) == 0) {
+        find_ctx->found_node = node;
         return true;
     }
 
     return false;
+}
+
+static Node *aki_find_leaf(Node *node, const char *target) {
+    assert(node != NULL);
+    assert(target != NULL);
+
+    AkiFindContext find_ctx = { .target = target };
+    bt_walk(node, &find_leaf_cb, &find_ctx);
+
+    return find_ctx.found_node;
 }
 
 static void print_definition(Node *node) {
@@ -289,21 +294,16 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
     }
 
     obj_name = aki_getline("What's the object you searching for? ");
-    AkiFindContext find_ctx = {
-        .str = obj_name,
-        .node = NULL
-    };
+    Node *found_obj = aki_find_leaf(ctx->root, obj_name);
 
-    bt_walk(ctx->root, &node_value_is, &find_ctx);
-
-    if (find_ctx.node == NULL) {
+    if (found_obj == NULL) {
         fputs("No such object :(\n", stdout);
 
         aki_status = AKI_OK;
         goto cleanup;
     }
 
-    print_definition(find_ctx.node);
+    print_definition(found_obj);
 
 cleanup:
     free(obj_name);
@@ -312,6 +312,167 @@ cleanup:
 
     return aki_status;
 }
+
+static AkiStatus get_path_to_node(Node *node, stack_t *stack) {
+    assert(node != NULL);
+    assert(stack != NULL);
+
+    StackStatus status = 0;
+    while (node != NULL) {
+        stack_push(stack, node, &status);
+        if (status != STACK_OK) return AKI_STACK_ERROR;
+        node = node->parent;
+    }
+
+    return AKI_OK;
+}
+
+static AkiStatus aki_prompt_path_to_obj(const char *prompt, AkiContext *ctx,
+                                        stack_t *stack) {
+    assert(ctx != NULL);
+    assert(prompt != NULL);
+    assert(stack != NULL);
+
+    char *obj_name = aki_getline(prompt);
+    Node *found_obj = aki_find_leaf(ctx->root, obj_name);
+    if (found_obj == NULL) {
+        free(obj_name);
+        return AKI_NO_SUCH_OBJECT;
+    }
+
+    AkiStatus status = get_path_to_node(found_obj, stack);
+    if (status != AKI_OK) {
+        free(obj_name);
+        return AKI_NO_SUCH_OBJECT;
+    }
+
+    free(obj_name);
+
+    return AKI_OK;
+}
+
+static void print_similarity(const char *similarity, bool negated) {
+    assert(similarity != NULL);
+
+    if (negated) {
+        printf("NOT %s, ", similarity);
+    } else {
+        printf("%s, ", similarity);
+    } 
+}
+
+static void print_difference(const char *first_str, const char *second_str,
+                             bool negated_first, bool negated_second) {
+    assert(first_str != NULL);
+    assert(second_str != NULL);
+
+    printf("[first object] %s%s, ",
+            (negated_first) ? "NOT " : "", first_str);
+    printf("[second object] %s%s, ",
+            (negated_second) ? "NOT " : "", second_str);
+}
+
+
+static AkiStatus pop_from_two_stacks(stack_t *stack1, stack_t *stack2,
+                                     Node **out_node1, Node **out_node2) {
+    assert(stack1 != NULL);
+    assert(stack2 != NULL);
+    assert(out_node1 != NULL);
+    assert(out_node2 != NULL);
+
+    StackStatus status = 0;
+    *out_node1 = stack_pop(stack1, &status);
+    if (status != STACK_OK) return AKI_STACK_ERROR;
+
+    *out_node2 = stack_pop(stack2, &status);
+    if (status != STACK_OK) return AKI_STACK_ERROR;
+
+    return AKI_OK;
+}
+
+static AkiStatus print_comparison(stack_t *stack1, stack_t *stack2) {
+    assert(stack1 != NULL);
+    assert(stack2 != NULL);
+
+    Node *prev1 = NULL, *prev2 = NULL;
+    AkiStatus status = pop_from_two_stacks(stack1, stack2, &prev1, &prev2);
+    if (status != AKI_OK) return status;
+
+    bool both_banner_printed = false, diff_banner_printed = false;
+
+    while (prev1 != NULL && prev2 != NULL) {
+        if (node_is_leaf(prev1) || node_is_leaf(prev2))
+            break;
+
+        Node *elem1 = NULL, *elem2 = NULL;
+        status = pop_from_two_stacks(stack1, stack2, &elem1, &elem2);
+        // if (status != AKI_OK) return status;
+
+        // fprintf(stderr, "\n-----------\n");
+        // fprintf(stderr, "prev1: %p\n", prev1);
+        // fprintf(stderr, "prev2: %p\n", prev2);
+        // fprintf(stderr, "prev1->value: %s\n", prev1->value);
+        // fprintf(stderr, "prev2->value: %s\n", prev2->value);
+        // fprintf(stderr, "elem1: %p\n", elem1);
+        // fprintf(stderr, "elem2: %p\n", elem2);
+
+        bool yes_path_elem1 = prev1->right == elem1;
+        bool yes_path_elem2 = prev2->right == elem2;
+        
+        if (prev1 == prev2 && yes_path_elem1 == yes_path_elem2) {
+            if (!both_banner_printed) {
+                fputs("\nThey both are: ", stdout);
+                both_banner_printed = true;
+            }
+            print_similarity(prev1->value, !yes_path_elem1 && !yes_path_elem2);
+        } else {
+            if (!diff_banner_printed) {
+                fputs("\nBut they differ in: ", stdout);
+                diff_banner_printed = true;
+            }
+            print_difference(prev1->value, prev2->value,
+                             !yes_path_elem1, !yes_path_elem2);
+        }
+
+        prev1 = elem1;
+        prev2 = elem2;
+    }
+
+    fputc('\n', stdout);
+
+    return AKI_OK;
+}
+
+
+static AkiStatus handle_compare_action(AkiContext *ctx) {
+    assert(ctx != NULL);
+
+    stack_t stack1 = {}, stack2 = {};
+    AkiStatus aki_status = aki_prompt_load_db(ctx);
+    if (aki_status != AKI_OK) goto cleanup;
+
+    StackStatus st_status = STACK_INIT_DBG(&stack1, 16);
+    if (st_status != STACK_OK) { aki_status = AKI_STACK_ERROR; goto cleanup; }
+
+    st_status = STACK_INIT_DBG(&stack2, 16);
+    if (st_status != STACK_OK) { aki_status = AKI_STACK_ERROR; goto cleanup; }
+
+    aki_status = aki_prompt_path_to_obj("First object name: ", ctx, &stack1);
+    if (aki_status != AKI_OK) goto cleanup;
+
+    aki_status = aki_prompt_path_to_obj("Second object name: ", ctx, &stack2);
+    if (aki_status != AKI_OK) goto cleanup;
+
+    aki_status = print_comparison(&stack1, &stack2);
+
+cleanup:
+    bt_destroy(ctx->root);
+    ctx->root = NULL;
+    stack_destroy(&stack1);
+    stack_destroy(&stack2);
+
+    return aki_status;
+} 
 
 
 void aki_main_loop(AkiContext *ctx) {
@@ -339,7 +500,8 @@ void aki_main_loop(AkiContext *ctx) {
                 if (status != AKI_OK) fprintf(stderr, "Error: %s\n", aki_error_str(status));
                 break;
             case '3':
-                handle_compare_action(ctx);
+                status = handle_compare_action(ctx);
+                if (status != AKI_OK) fprintf(stderr, "Error: %s\n", aki_error_str(status));
                 break;
             case '4':
                 return;

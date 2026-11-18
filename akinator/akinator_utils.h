@@ -11,8 +11,8 @@ typedef struct {
 } AkiContext;
 
 typedef struct {
-    char *str;
-    Node *node;
+    const char *target;
+    Node *found_node;
 } AkiFindContext;
 
 typedef enum {
@@ -27,7 +27,9 @@ typedef enum {
     AKI_CANNOT_LOAD_FILE,
     AKI_CANNOT_OPEN_FILE,
     AKI_TREE_DESERIALIZATION_FAILED,
-    AKI_TREE_SERIALIZATION_FAILED
+    AKI_TREE_SERIALIZATION_FAILED,
+    AKI_STACK_ERROR,
+    AKI_NO_SUCH_OBJECT
 } AkiStatus;
 
 void aki_greet();

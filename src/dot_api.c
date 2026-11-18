@@ -30,7 +30,8 @@ void init_normal_node(FILE *dot_file, Node *node, bitree_elem_t label) {
     
     fprintf(dot_file, "node_%p[label=\"{ ", node);
     BT_DOT_SER_ELEM(label, dot_file);
-    fprintf(dot_file, " | { left: %p | right: %p }", node->left, node->right);
+    fprintf(dot_file, " | address: %p | { left: %p | right: %p }",
+            node, node->left, node->right);
 
     #ifdef BT_USE_PARENT_FIELD
     fprintf(dot_file, " | parent: %p ", node->parent);

@@ -46,7 +46,7 @@ static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
         #endif
     } else if (buff[*counter] == '#') {
         (*counter)++;
-    } else {
+    } else if (buff[*counter] != '\0') {
         (*counter)++;
         status = bt_deserialize_body(buff, counter, out_node);
         if (status != BITREE_OK) return status;

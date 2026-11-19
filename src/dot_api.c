@@ -22,6 +22,9 @@ void set_default_style(FILE *dot_file) {
           "shape=\""     NODE_SHAPE      "\", "
           "fillcolor=\"" NODE_FILLCOLOR  "\", "
           "];\n"
+          "edge["
+          "fontname=\"" EDGE_FONTNAME    "\", "
+          "];\n"
           , dot_file);
 }
 
@@ -40,14 +43,23 @@ void init_normal_node(FILE *dot_file, Node *node, bitree_elem_t label) {
     fputs("}\"];\n", dot_file);
 }
 
-void connect_nodes(FILE *dot_file, const void *first, const void *second, const char *style) {
+void connect_nodes(FILE *dot_file, const Node *first,
+                  const Node *second, const char *style) {
     assert(dot_file != NULL);
     assert(first != NULL);
     assert(second != NULL);
 
-    fprintf(dot_file, "node_%p->node_%p", first, second);
-    if (style != NULL) fprintf(dot_file, "[style=\"%s\"]", style);
-    fputs(";\n", dot_file);
+    fprintf(dot_file, "node_%p->node_%p[", first, second);
+                    
+    if (style != NULL) fprintf(dot_file, "style=\"%s\", ", style);
+
+    if (second == first->right) {
+        fputs("label=yes];\n", dot_file);
+        fprintf(dot_file, "node_%p[fillcolor=\"" RIGHT_NODE_FILLCOLOR "\"];", second);
+    } else if (second == first->left) {
+        fputs("label=no];\n", dot_file);
+        fprintf(dot_file, "node_%p[fillcolor=\"" LEFT_NODE_FILLCOLOR "\"];", second);
+    }
 }
 
 void connect_placeholder(FILE *dot_file, const void *first, const char *tag) {

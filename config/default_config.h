@@ -1,7 +1,6 @@
 #pragma once
 
 typedef int bitree_elem_t;
-#define BITREE_ELEM_FMT "%d"
 
 #define BT_DESTROY_ELEM destroy_int
 #define BT_SER_ELEM     ser_int

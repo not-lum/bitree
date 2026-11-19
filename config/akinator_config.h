@@ -4,7 +4,6 @@
 
 #define BT_USE_PARENT_FIELD
 typedef char* bitree_elem_t;
-#define BITREE_ELEM_FMT "\"%s\""
 
 #define BT_DESTROY_ELEM destroy_str
 #define BT_SER_ELEM     ser_str

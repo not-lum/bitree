@@ -43,19 +43,6 @@ FileStatus get_file_size(const char *filename, size_t *out_file_size) {
     return FS_OK;
 }
 
-static size_t str_count_char(char *str, char ch) {
-    size_t res = 0;
-
-    while (*str != '\0') {
-        if (*str == ch)
-            res++;
-
-        str++;
-    }
-
-    return res;
-}
-
 FileStatus load_file_alloc(LoadedFile *out_l_file, const char *filename) {
     assert(filename != NULL);
     assert(out_l_file != NULL);

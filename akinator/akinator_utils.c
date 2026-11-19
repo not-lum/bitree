@@ -89,7 +89,7 @@ static AkiAnswer ask(const char *text, ...) {
         va_copy(va_list_copy, args);
 
         vprintf(text, va_list_copy);
-        printf("? (y/n)\n");
+        printf("? (y/n) ");
 
         char answer = '\0';
         if (!read_char(&answer))
@@ -143,7 +143,7 @@ static void present_guess(Node *parent, BtChildKind ch_kind) {
     Node *guessed_obj = bt_get_child(parent, ch_kind);
     char *guessed_obj_name = guessed_obj->value;
 
-    AkiAnswer ans = ask("I guessed it! It's \"%s\", right", guessed_obj_name);
+    AkiAnswer ans = ask(">>> It's \"%s\"", guessed_obj_name);
     if (ans == AKI_NO) {
         char *new_obj_name = aki_getline("Then what is it? ");
         char *diff_str = aki_getline("Explain what makes '%s' diffrent from '%s': ",
@@ -197,7 +197,7 @@ static void guess_loop(AkiContext *ctx) {
 }
 
 void aki_greet() {
-    fputs("Welcome to Akinator v.0.1\n", stdout);
+    fputs("Welcome to Akinator " AKINATOR_VERSION "\n", stdout);
 }
 
 static void get_filename(const char *prompt, char *out_filename) {

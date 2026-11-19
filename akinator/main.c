@@ -10,7 +10,6 @@
 // #define MAX_FILENAME_LEN 128
 // char buff[] = "(\"root\"(\"left\"(\"left of left\"#(\"right of left of left\"##))#)(\"abracadabra\"#(\"bibobabobus\"#(\"fffff\"#(\"aaaaa aa\"##)))))";
 int main() {
-    aki_greet();
     AkiContext ctx = {};
-    aki_main_loop(&ctx);
+    aki_start_game(&ctx);
 }

@@ -85,7 +85,10 @@ static AkiAnswer ask(const char *text, ...) {
 
     AkiAnswer res = AKI_INVALID;
     while (res == AKI_INVALID) {
-        vprintf(text, args);
+        va_list va_list_copy = {};
+        va_copy(va_list_copy, args);
+
+        vprintf(text, va_list_copy);
         printf("? (y/n)\n");
 
         char answer = '\0';
@@ -197,10 +200,19 @@ void aki_greet() {
     fputs("Welcome to Akinator v.0.1\n", stdout);
 }
 
-static AkiStatus aki_prompt_load_db(AkiContext *ctx) {
-    fputs("Enter database filename: ", stdout);
-    scanf("%" MAX_FILENAME_LEN_STR "s", ctx->db_filename);
+static void get_filename(const char *prompt, char *out_filename) {
+    assert(prompt != NULL);
+    assert(out_filename != NULL);
+
+    fputs(prompt, stdout);
+    scanf("%" MAX_FILENAME_LEN_STR "s", out_filename);
     getchar(); // removing last \n
+}
+
+AkiStatus aki_prompt_load_db(AkiContext *ctx) {
+    assert(ctx != NULL);
+
+    get_filename("Enter database filename: ", ctx->db_filename);
 
     return load_db(ctx);
 }
@@ -208,20 +220,7 @@ static AkiStatus aki_prompt_load_db(AkiContext *ctx) {
 static AkiStatus handle_guess_action(AkiContext *ctx) {
     assert(ctx != NULL);
 
-    AkiStatus status = aki_prompt_load_db(ctx);
-    if (status != AKI_OK)
-        return status;
-
     guess_loop(ctx); 
-
-    FILE *dot_file = fopen(DOT_FILENAME, "w");
-    bt_dump_to_dot(ctx->root, dot_file);
-    fclose(dot_file);
-
-    compile_dot(DOT_FILENAME, IMG_FILENAME);
-
-    bt_destroy(ctx->root);
-    ctx->root = NULL;
 
     return AKI_OK;
 }
@@ -252,46 +251,62 @@ static Node *aki_find_leaf(Node *node, const char *target) {
     return find_ctx.found_node;
 }
 
-static void print_definition(Node *node) {
-    assert(node != NULL);
+static void print_definition(stack_t *path_stk, const char *obj_name) {
+    assert(path_stk != NULL);
+    assert(obj_name != NULL);
 
-    Node *curr = node->parent;
-    Node *prev_node = node;
-    printf("--- '%s' is: ", node->value);
+    StackStatus st_status = 0;
+    Node *prev = stack_pop(path_stk, &st_status);
+    printf("--- '%s' is: ", obj_name);
 
     const char *prefix = "";
     bool first = true;
-    while (curr != NULL) {
-        if (curr->left == prev_node)
+
+    while (true) {
+        Node *node = stack_pop(path_stk, &st_status);
+        if (st_status == STACK_CANNOT_POP_FROM_EMPTY)
+            break;
+
+        if (prev->left == node)
             prefix = "NOT ";
         else
             prefix = "";
 
         if (first) {
-            printf("%s'%s'", prefix, curr->value);
+            printf("%s%s", prefix, prev->value);
             first = false;
         } else
-            printf(", %s'%s'", prefix, curr->value);
+            printf(", %s%s", prefix, prev->value);
 
-        prev_node = curr;
-        curr = curr->parent;
+        prev = node;
     }
 
     fputc('\n', stdout);
 }
 
+static AkiStatus get_path_to_node(Node *node, stack_t *stack) {
+    assert(node != NULL);
+    assert(stack != NULL);
+
+    StackStatus status = 0;
+
+    while (node != NULL) {
+        stack_push(stack, node, &status);
+        if (status != STACK_OK)
+            return AKI_STACK_ERROR;
+
+        node = node->parent;
+    }
+
+    return AKI_OK;
+}
 
 static AkiStatus handle_definition_action(AkiContext *ctx) {
     assert(ctx != NULL);
 
     char *obj_name = NULL;
-    AkiStatus aki_status = aki_prompt_load_db(ctx);
-    if (aki_status != AKI_OK) {
-        bt_destroy(ctx->root);
-        ctx->root = NULL;
-
-        goto cleanup;
-    }
+    stack_t path_stk = {};
+    AkiStatus aki_status = AKI_OK;
 
     obj_name = aki_getline("What's the object you searching for? ");
     Node *found_obj = aki_find_leaf(ctx->root, obj_name);
@@ -303,28 +318,19 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
         goto cleanup;
     }
 
-    print_definition(found_obj);
+    StackStatus st_status = STACK_INIT_DBG(&path_stk, 16);
+    if (st_status != STACK_OK) { aki_status = AKI_STACK_ERROR; goto cleanup; }
+
+    aki_status = get_path_to_node(found_obj, &path_stk);
+    if (aki_status != AKI_OK) goto cleanup;
+
+    print_definition(&path_stk, found_obj->value);
 
 cleanup:
     free(obj_name);
-    bt_destroy(ctx->root);
-    ctx->root = NULL;
+    stack_destroy(&path_stk);
 
     return aki_status;
-}
-
-static AkiStatus get_path_to_node(Node *node, stack_t *stack) {
-    assert(node != NULL);
-    assert(stack != NULL);
-
-    StackStatus status = 0;
-    while (node != NULL) {
-        stack_push(stack, node, &status);
-        if (status != STACK_OK) return AKI_STACK_ERROR;
-        node = node->parent;
-    }
-
-    return AKI_OK;
 }
 
 static AkiStatus aki_prompt_path_to_obj(const char *prompt, AkiContext *ctx,
@@ -406,28 +412,20 @@ static AkiStatus print_comparison(stack_t *stack1, stack_t *stack2) {
 
         Node *elem1 = NULL, *elem2 = NULL;
         status = pop_from_two_stacks(stack1, stack2, &elem1, &elem2);
-        // if (status != AKI_OK) return status;
-
-        // fprintf(stderr, "\n-----------\n");
-        // fprintf(stderr, "prev1: %p\n", prev1);
-        // fprintf(stderr, "prev2: %p\n", prev2);
-        // fprintf(stderr, "prev1->value: %s\n", prev1->value);
-        // fprintf(stderr, "prev2->value: %s\n", prev2->value);
-        // fprintf(stderr, "elem1: %p\n", elem1);
-        // fprintf(stderr, "elem2: %p\n", elem2);
+        // if (status != AKI_OK) return status; // TODO: maybe comment
 
         bool yes_path_elem1 = prev1->right == elem1;
         bool yes_path_elem2 = prev2->right == elem2;
         
         if (prev1 == prev2 && yes_path_elem1 == yes_path_elem2) {
             if (!both_banner_printed) {
-                fputs("\nThey both are: ", stdout);
+                fputs("\n--- They both are: ", stdout);
                 both_banner_printed = true;
             }
             print_similarity(prev1->value, !yes_path_elem1 && !yes_path_elem2);
         } else {
             if (!diff_banner_printed) {
-                fputs("\nBut they differ in: ", stdout);
+                fputs("\n--- They differ in: ", stdout);
                 diff_banner_printed = true;
             }
             print_difference(prev1->value, prev2->value,
@@ -448,7 +446,7 @@ static AkiStatus handle_compare_action(AkiContext *ctx) {
     assert(ctx != NULL);
 
     stack_t stack1 = {}, stack2 = {};
-    AkiStatus aki_status = aki_prompt_load_db(ctx);
+    AkiStatus aki_status = AKI_OK;
     if (aki_status != AKI_OK) goto cleanup;
 
     StackStatus st_status = STACK_INIT_DBG(&stack1, 16);
@@ -466,24 +464,50 @@ static AkiStatus handle_compare_action(AkiContext *ctx) {
     aki_status = print_comparison(&stack1, &stack2);
 
 cleanup:
-    bt_destroy(ctx->root);
-    ctx->root = NULL;
     stack_destroy(&stack1);
     stack_destroy(&stack2);
 
     return aki_status;
 } 
 
+static AkiStatus handle_visualize_action(AkiContext *ctx) {
+    assert(ctx != NULL);
 
-void aki_main_loop(AkiContext *ctx) {
+    char img_filename[MAX_FILENAME_LEN] = {};
+    get_filename("Enter image filename: ", img_filename);
+
+    FILE *dot_file = fopen(DOT_FILENAME, "w");
+    if (dot_file == NULL)
+        return AKI_CANNOT_OPEN_FILE;
+
+    bt_dump_to_dot(ctx->root, dot_file);
+
+    fclose(dot_file);
+
+    compile_dot(DOT_FILENAME, img_filename);
+
+    printf("Visualized database '%s' in '%s'.\n", ctx->db_filename, img_filename);
+
+    return AKI_OK;
+}
+
+
+void aki_start_game(AkiContext *ctx) {
     AkiStatus status = 0;
+    aki_greet();
+    status = aki_prompt_load_db(ctx);
+    if (status != AKI_OK) {
+        fprintf(stderr, "Error: %s\n", aki_error_str(status));
+        return;
+    }
 
     while (true) {
         fputs("\nSelect action:\n"
               "1. Guess object\n"
-              "2. Show object definition\n"
+              "2. Get object definition\n"
               "3. Compare objects\n"
-              "4. Quit\n"
+              "4. Visualize database\n"
+              "5. Quit\n"
               "> ", stdout);
 
         char choice = '\0';
@@ -504,6 +528,11 @@ void aki_main_loop(AkiContext *ctx) {
                 if (status != AKI_OK) fprintf(stderr, "Error: %s\n", aki_error_str(status));
                 break;
             case '4':
+                status = handle_visualize_action(ctx);
+                if (status != AKI_OK) fprintf(stderr, "Error: %s\n", aki_error_str(status));
+                break;
+            case '5':
+                bt_destroy(ctx->root);
                 return;
             default:
                 printf("Unknown action. Try again\n");

@@ -1,0 +1,259 @@
+
+[SECSTACK ERROR]: (cannot pop from empty stack)
+stack '(&path_stk)' [0x7fd7b0100230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':317
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 8
+size = 0
+data = [0x508000000020]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x508000000020]:
+[0x508000000020] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+[0x508000000028] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (88 bytes) [0x508000000020]:
+
+[0x508000000020] B07C EBAC 0CE7 B0BE ABBA 3EC0 BA3E BAE7 
+[0x508000000030] ABBA 3EC0 BA3E BAE7 0000 0000 0000 0000 
+[0x508000000040] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000050] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000070] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK ERROR]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f1761900230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':317
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 8
+size = 1
+data = [0x508000000020]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x508000000020]:
+[0x508000000020] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>    <-- LAST STACK ELEMENT
+[0x508000000030] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (88 bytes) [0x508000000020]:
+
+[0x508000000020] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x508000000030] ABBA 3EC0 BA3E BAE7 ABBA 3EC0 BA3E BAE7 
+[0x508000000040] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000050] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000070] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f1761900230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':317
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 4
+size = 0
+data = [0x506000000080]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x506000000080]:
+[0x506000000080] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+[0x506000000088] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (56 bytes) [0x506000000080]:
+
+[0x506000000080] B07C EBAC 0CE7 B0BE ABBA 3EC0 BA3E BAE7 
+[0x506000000090] ABBA 3EC0 BA3E BAE7 ABBA 3EC0 BA3E BAE7 
+[0x5060000000a0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x5060000000b0] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7fe897d00230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':317
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 16
+size = 2
+data = [0x50e000000040]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x50e000000040]:
+[0x50e000000040] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>
+* [1] = <0x503000000040>    <-- LAST STACK ELEMENT
+[0x50e000000058] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (152 bytes) [0x50e000000040]:
+
+[0x50e000000040] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x50e000000050] 4000 0000 3050 0000 ABBA 3EC0 BA3E BAE7 
+[0x50e000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000070] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000080] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000090] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000a0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000b0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000c0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000d0] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f6cfb700230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':317
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 16
+size = 2
+data = [0x50e000000040]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x50e000000040]:
+[0x50e000000040] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>
+* [1] = <0x503000000040>    <-- LAST STACK ELEMENT
+[0x50e000000058] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (152 bytes) [0x50e000000040]:
+
+[0x50e000000040] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x50e000000050] 4000 0000 3050 0000 ABBA 3EC0 BA3E BAE7 
+[0x50e000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000070] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000080] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000090] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000a0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000b0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000c0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000d0] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f9d3d900230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':316
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 16
+size = 2
+data = [0x50e000000040]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x50e000000040]:
+[0x50e000000040] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>
+* [1] = <0x503000000040>    <-- LAST STACK ELEMENT
+[0x50e000000058] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (152 bytes) [0x50e000000040]:
+
+[0x50e000000040] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x50e000000050] 4000 0000 3050 0000 ABBA 3EC0 BA3E BAE7 
+[0x50e000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000070] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000080] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000090] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000a0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000b0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000c0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000d0] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f9d3d900230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':316
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 8
+size = 1
+data = [0x508000000020]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x508000000020]:
+[0x508000000020] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>    <-- LAST STACK ELEMENT
+[0x508000000030] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (88 bytes) [0x508000000020]:
+
+[0x508000000020] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x508000000030] ABBA 3EC0 BA3E BAE7 ABBA 3EC0 BA3E BAE7 
+[0x508000000040] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000050] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000070] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f3e3d100230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':316
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 16
+size = 2
+data = [0x50e000000040]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x50e000000040]:
+[0x50e000000040] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>
+* [1] = <0x503000000040>    <-- LAST STACK ELEMENT
+[0x50e000000058] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (152 bytes) [0x50e000000040]:
+
+[0x50e000000040] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x50e000000050] 4000 0000 3050 0000 ABBA 3EC0 BA3E BAE7 
+[0x50e000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000070] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000080] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e000000090] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000a0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000b0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000c0] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x50e0000000d0] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+
+
+[SECSTACK DUMP]
+stack '(&path_stk)' [0x7f3e3d100230] created by 'handle_definition_action()' at 'akinator/akinator_utils.c':316
+==================================================
+l_canary = <baadf00dfee15aad>
+capacity = 8
+size = 1
+data = [0x508000000020]
+r_canary = <deadbeeffeedcafe>
+==================================================
+Stack elements data [0x508000000020]:
+[0x508000000020] = <0xB07CEBAC0CE7B0BE>   <-- LEFT CANARY
+* [0] = <0x503000000070>    <-- LAST STACK ELEMENT
+[0x508000000030] = <0xABBA3EC0BA3EBAE7>   <-- RIGHT CANARY
+==================================================
+Full data buffer hex dump (88 bytes) [0x508000000020]:
+
+[0x508000000020] B07C EBAC 0CE7 B0BE 7000 0000 3050 0000 
+[0x508000000030] ABBA 3EC0 BA3E BAE7 ABBA 3EC0 BA3E BAE7 
+[0x508000000040] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000050] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000060] 0000 0000 0000 0000 0000 0000 0000 0000 
+[0x508000000070] 0000 0000 0000 0000 
+
+==================================================
+[END SECSTACK DUMP]
+

@@ -140,6 +140,8 @@ static char *deser_int(char *buff, bitree_elem_t *value) {
 
 Пример использования:
 ```c
+#include "include/bitree_dump.h"
+
 FILE *dot_file = fopen("/tmp/tree_dump.dot", "w");
 bt_dump_to_dot(root, dot_file);
 fclose(dot_file);

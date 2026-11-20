@@ -2,7 +2,7 @@
 
 #include "../include/bitree.h"
 
-#define AKINATOR_VERSION "v1.0"
+#define AKINATOR_VERSION "v1.1"
 #define MAX_FILENAME_LEN 128
 #define MAX_FILENAME_LEN_STR "127"
 

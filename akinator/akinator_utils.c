@@ -51,7 +51,7 @@ static AkiStatus load_db(AkiContext *ctx) {
     return AKI_OK;
 }
 
-static AkiStatus save_bd(AkiContext *ctx) {
+static AkiStatus save_db(AkiContext *ctx) {
     assert(ctx != NULL);
 
     FILE *file = fopen(ctx->db_filename, "w");
@@ -90,6 +90,7 @@ static AkiAnswer ask(const char *text, ...) {
 
         vprintf(text, va_list_copy);
         printf("? (y/n) ");
+        va_end(va_list_copy);
 
         char answer = '\0';
         if (!read_char(&answer))
@@ -146,7 +147,7 @@ static void present_guess(Node *parent, BtChildKind ch_kind) {
     AkiAnswer ans = ask(">>> It's \"%s\"", guessed_obj_name);
     if (ans == AKI_NO) {
         char *new_obj_name = aki_getline("Then what is it? ");
-        char *diff_str = aki_getline("Explain what makes '%s' diffrent from '%s': ",
+        char *diff_str = aki_getline("What is TRUE for '%s', but FALSE for '%s': ",
                                       new_obj_name, guessed_obj_name);
 
         bt_change(guessed_obj, diff_str);
@@ -162,36 +163,35 @@ static void guess_loop(AkiContext *ctx) {
     Node *curr = ctx->root;
 
     while (true) {
-        AkiAnswer ans = ask(curr->value);
+        AkiAnswer ans = ask("%s", curr->value);
+        Node *next_node = NULL;
+        BtChildKind next_node_kind = -1;
 
-        switch (ans) { // TODO: think about copypaste here
+        switch (ans) {
             case AKI_YES:
-                if (curr->right == NULL) {
-                    add_object(curr, BT_RIGHT_CHILD, ctx);
-                    save_bd(ctx);
-                    return;
-                } else if (node_is_leaf(curr->right)) {
-                    present_guess(curr, BT_RIGHT_CHILD);
-                    save_bd(ctx);
-                    return;
-                }
-                curr = curr->right;
+                next_node = curr->right;
+                next_node_kind = BT_RIGHT_CHILD;
                 break;
             case AKI_NO:
-                if (curr->left == NULL) {
-                    add_object(curr, BT_LEFT_CHILD, ctx);
-                    save_bd(ctx);
-                    return;
-                } else if (node_is_leaf(curr->left)) {
-                    present_guess(curr, BT_LEFT_CHILD);
-                    save_bd(ctx);
-                    return;
-                }
-                curr = curr->left;
+                next_node = curr->left;
+                next_node_kind = BT_LEFT_CHILD;
                 break;
             case AKI_INVALID:
                 fputs("Only y/n allowed. Try again\n", stdout);
                 break;
+        }
+
+        if ((int)next_node_kind != -1) {
+            if (next_node == NULL) {
+                add_object(curr, next_node_kind, ctx);
+                save_db(ctx);
+                return;
+            } else if (node_is_leaf(next_node)) {
+                present_guess(curr, next_node_kind);
+                save_db(ctx);
+                return;
+            }
+            curr = next_node;
         }
     }
 }
@@ -232,7 +232,7 @@ static bool find_leaf_cb(Node *node, BtWalkState state, void *ctx) {
         return false;
 
     AkiFindContext *find_ctx = (AkiFindContext *)ctx;
-    // TODO: optimize
+
     if (node_is_leaf(node) && strcasecmp(node->value, find_ctx->target) == 0) {
         find_ctx->found_node = node;
         return true;
@@ -251,37 +251,55 @@ static Node *aki_find_leaf(Node *node, const char *target) {
     return find_ctx.found_node;
 }
 
-static void print_definition(stack_t *path_stk, const char *obj_name) {
+static AkiStatus print_trailing_path(const char *text, stack_t *stack, Node *prev, Node *elem) {
+    assert(text != NULL);
+    assert(stack != NULL);
+    assert(prev != NULL);
+    assert(elem != NULL);
+
+    bool first_print = true;
+    StackStatus st_status = 0;
+
+    while (!node_is_leaf(prev)) {
+        if (st_status != STACK_OK)
+            return AKI_STACK_ERROR;
+
+        const char *comma = ", ";
+
+        if (first_print) {
+            fputs(text, stdout);
+            comma = "";
+            first_print = false;
+        }
+
+        const char *prefix = (prev->left == elem) ? "NOT " : "";
+
+        printf("%s%s%s", comma, prefix, prev->value);
+        
+        prev = elem;
+        elem = stack_pop(stack, &st_status);
+    }
+
+    if (!first_print)
+        fputc('\n', stdout);
+
+    return AKI_OK;
+}
+
+
+static AkiStatus print_definition(stack_t *path_stk, const char *obj_name) {
     assert(path_stk != NULL);
     assert(obj_name != NULL);
 
     StackStatus st_status = 0;
+
     Node *prev = stack_pop(path_stk, &st_status);
-    printf("--- '%s' is: ", obj_name);
+    if (st_status != STACK_OK) return AKI_STACK_ERROR;
 
-    const char *prefix = "";
-    bool first = true;
+    Node *elem = stack_pop(path_stk, &st_status);
+    if (st_status != STACK_OK) return AKI_STACK_ERROR;
 
-    while (true) {
-        Node *node = stack_pop(path_stk, &st_status);
-        if (st_status == STACK_CANNOT_POP_FROM_EMPTY)
-            break;
-
-        if (prev->left == node)
-            prefix = "NOT ";
-        else
-            prefix = "";
-
-        if (first) {
-            printf("%s%s", prefix, prev->value);
-            first = false;
-        } else
-            printf(", %s%s", prefix, prev->value);
-
-        prev = node;
-    }
-
-    fputc('\n', stdout);
+    return print_trailing_path("--- It's: ", path_stk, prev, elem);
 }
 
 static AkiStatus get_path_to_node(Node *node, stack_t *stack) {
@@ -312,9 +330,7 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
     Node *found_obj = aki_find_leaf(ctx->root, obj_name);
 
     if (found_obj == NULL) {
-        fputs("No such object :(\n", stdout);
-
-        aki_status = AKI_OK;
+        aki_status = AKI_NO_SUCH_OBJECT;
         goto cleanup;
     }
 
@@ -324,7 +340,7 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
     aki_status = get_path_to_node(found_obj, &path_stk);
     if (aki_status != AKI_OK) goto cleanup;
 
-    print_definition(&path_stk, found_obj->value);
+    aki_status = print_definition(&path_stk, found_obj->value);
 
 cleanup:
     free(obj_name);
@@ -357,27 +373,15 @@ static AkiStatus aki_prompt_path_to_obj(const char *prompt, AkiContext *ctx,
     return AKI_OK;
 }
 
-static void print_similarity(const char *similarity, bool negated) {
+static void print_similarity(const char *similarity, bool is_correct) {
     assert(similarity != NULL);
 
-    if (negated) {
-        printf("NOT %s, ", similarity);
+    if (is_correct) {
+        printf("%s", similarity);
     } else {
-        printf("%s, ", similarity);
+        printf("NOT %s", similarity);
     } 
 }
-
-static void print_difference(const char *first_str, const char *second_str,
-                             bool negated_first, bool negated_second) {
-    assert(first_str != NULL);
-    assert(second_str != NULL);
-
-    printf("[first object] %s%s, ",
-            (negated_first) ? "NOT " : "", first_str);
-    printf("[second object] %s%s, ",
-            (negated_second) ? "NOT " : "", second_str);
-}
-
 
 static AkiStatus pop_from_two_stacks(stack_t *stack1, stack_t *stack2,
                                      Node **out_node1, Node **out_node2) {
@@ -400,45 +404,47 @@ static AkiStatus print_comparison(stack_t *stack1, stack_t *stack2) {
     assert(stack1 != NULL);
     assert(stack2 != NULL);
 
+    fputc('\n', stdout);
+
     Node *prev1 = NULL, *prev2 = NULL;
     AkiStatus status = pop_from_two_stacks(stack1, stack2, &prev1, &prev2);
     if (status != AKI_OK) return status;
 
-    bool both_banner_printed = false, diff_banner_printed = false;
+    Node *elem1 = NULL, *elem2 = NULL;
+    bool banner_printed = false;
 
-    while (prev1 != NULL && prev2 != NULL) {
-        if (node_is_leaf(prev1) || node_is_leaf(prev2))
-            break;
-
-        Node *elem1 = NULL, *elem2 = NULL;
+    while (!node_is_leaf(prev1) && !node_is_leaf(prev2)) {
         status = pop_from_two_stacks(stack1, stack2, &elem1, &elem2);
-        // if (status != AKI_OK) return status; // TODO: maybe comment
+        if (status != AKI_OK) return status;
 
-        bool yes_path_elem1 = prev1->right == elem1;
-        bool yes_path_elem2 = prev2->right == elem2;
-        
-        if (prev1 == prev2 && yes_path_elem1 == yes_path_elem2) {
-            if (!both_banner_printed) {
-                fputs("\n--- They both are: ", stdout);
-                both_banner_printed = true;
-            }
-            print_similarity(prev1->value, !yes_path_elem1 && !yes_path_elem2);
-        } else {
-            if (!diff_banner_printed) {
-                fputs("\n--- They differ in: ", stdout);
-                diff_banner_printed = true;
-            }
-            print_difference(prev1->value, prev2->value,
-                             !yes_path_elem1, !yes_path_elem2);
-        }
+        bool went_right1 = prev1->right == elem1;
+        bool went_right2 = prev2->right == elem2;
+
+        if (went_right1 != went_right2)
+            break;    
+    
+        if (!banner_printed) {
+            fputs("--- They both are: ", stdout);
+            banner_printed = true;
+        } else
+            fputs(", ", stdout);
+
+        print_similarity(prev1->value, went_right1);
 
         prev1 = elem1;
         prev2 = elem2;
     }
 
-    fputc('\n', stdout);
+    if (banner_printed) {
+        fputs("\n", stdout);
+        if (prev1 != prev2)
+            fputs("--- BUT: ", stdout);
+    }
 
-    return AKI_OK;
+    status = print_trailing_path("--- First object is: ", stack1, prev1, elem1);
+    if (status != AKI_OK) return status;
+
+    return print_trailing_path("--- Second object is: ", stack2, prev2, elem2);
 }
 
 

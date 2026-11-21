@@ -30,7 +30,10 @@ typedef enum {
     AKI_TREE_DESERIALIZATION_FAILED,
     AKI_TREE_SERIALIZATION_FAILED,
     AKI_STACK_ERROR,
-    AKI_NO_SUCH_OBJECT
+    AKI_NO_SUCH_OBJECT,
+    AKI_GETLINE_ERROR,
+    AKI_TREE_ERROR,
+    AKI_CANNOT_CLOSE_FILE
 } AkiStatus;
 
 const char* aki_error_str(AkiStatus status);

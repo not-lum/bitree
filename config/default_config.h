@@ -24,5 +24,5 @@ static char *deser_int(char *buff, bitree_elem_t *value) {
     int bytes_read = 0;
     sscanf(buff, "%d%n", value, &bytes_read);
     
-    return buff + bytes_read;
+    return buff + bytes_read - 1;
 }

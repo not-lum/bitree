@@ -28,16 +28,22 @@ const char* aki_error_str(AkiStatus status) {
             return "error while serializing tree";
         case AKI_NO_SUCH_OBJECT:
             return "unable to find object";
+        case AKI_GETLINE_ERROR:
+            return "error while getting user input";
+        case AKI_TREE_ERROR:
+            return "error while performing operations with binary tree";
+        case AKI_CANNOT_CLOSE_FILE:
+            return "unable to close file";
         default:
             return "unknown error";
     }
 }
 
-static AkiStatus load_db(AkiContext *ctx) {
+static AkiStatus aki_load_db(AkiContext *ctx) {
     assert(ctx != NULL);
 
     LoadedFile l_file = {};
-    // if we alloc every node, we don't need this. TODO: remove
+
     FileStatus f_status = load_file_alloc(&l_file, ctx->db_filename); 
     if (f_status != FS_OK)
         return AKI_CANNOT_LOAD_FILE;
@@ -51,7 +57,7 @@ static AkiStatus load_db(AkiContext *ctx) {
     return AKI_OK;
 }
 
-static AkiStatus save_db(AkiContext *ctx) {
+static AkiStatus aki_save_db(AkiContext *ctx) {
     assert(ctx != NULL);
 
     FILE *file = fopen(ctx->db_filename, "w");
@@ -59,7 +65,8 @@ static AkiStatus save_db(AkiContext *ctx) {
         return AKI_CANNOT_OPEN_FILE;
 
     BiTreeStatus status = bt_serialize(ctx->root, file);
-    fclose(file);
+    if (fclose(file) == EOF)
+        return AKI_CANNOT_CLOSE_FILE;
 
     if (status != BITREE_OK)
         return AKI_TREE_SERIALIZATION_FAILED;   
@@ -77,7 +84,7 @@ static bool read_char(char *out_buff) {
     return true;
 }
 
-static AkiAnswer ask(const char *text, ...) {
+static AkiAnswer aki_ask(const char *text, ...) {
     assert(text != NULL);
 
     va_list args = {};
@@ -107,8 +114,9 @@ static AkiAnswer ask(const char *text, ...) {
     return res;
 }
 
-static char *aki_getline(const char *prompt, ...) {
+static AkiStatus aki_getline(char **out_buff, const char *prompt, ...) {
     assert(prompt != NULL);
+    assert(out_buff != NULL);
 
     va_list args = {};
     va_start(args, prompt);
@@ -117,53 +125,88 @@ static char *aki_getline(const char *prompt, ...) {
 
     va_end(args);
 
-    char *line = NULL;
     size_t size = 0;
-    ssize_t len = getline(&line, &size, stdin);
-    line[len - 1] = '\0';
+    ssize_t len = getline(out_buff, &size, stdin);
+    if (len == -1)
+        return AKI_GETLINE_ERROR;
+
+    (*out_buff)[len - 1] = '\0';
     
-    return line;
+    return AKI_OK;
 }
 
-static void add_object(Node *parent, BtChildKind ch_kind, AkiContext *ctx) {
+static AkiStatus aki_add_object(Node *parent, BtChildKind ch_kind, AkiContext *ctx) {
     assert(parent != NULL);
     assert(ctx != NULL);
 
-    char *line = aki_getline("Uknown object!\n"
-                             "What is it? ");
+    char *line = NULL;
+    AkiStatus status = aki_getline(&line, "Uknown object!\n"
+                                          "What is it? ");
+    if (status != AKI_OK) return status;
+
     
-    bt_add(parent, ch_kind, line, NULL);
+    BiTreeStatus bt_status = bt_add(parent, ch_kind, line, NULL);
+    if (bt_status != BITREE_OK) return AKI_TREE_ERROR;
 
     printf("Added '%s'!\n", line);
+
+    return AKI_OK;
 }
 
 
-static void present_guess(Node *parent, BtChildKind ch_kind) {
+static AkiStatus aki_present_guess(Node *parent, BtChildKind ch_kind) {
     assert(parent != NULL);
 
     Node *guessed_obj = bt_get_child(parent, ch_kind);
     char *guessed_obj_name = guessed_obj->value;
 
-    AkiAnswer ans = ask(">>> It's \"%s\"", guessed_obj_name);
-    if (ans == AKI_NO) {
-        char *new_obj_name = aki_getline("Then what is it? ");
-        char *diff_str = aki_getline("What is TRUE for '%s', but FALSE for '%s': ",
-                                      new_obj_name, guessed_obj_name);
+    AkiAnswer ans = aki_ask(">>> It's \"%s\"", guessed_obj_name);
 
+    if (ans == AKI_NO) {
+        char *new_obj_name = NULL;
+        AkiStatus status = aki_getline(&new_obj_name, "Then what is it? ");
+        if (status != AKI_OK) return status;
+
+        char *diff_str = NULL;
+        status = aki_getline(&diff_str, "What is TRUE for '%s', but FALSE for '%s': ",
+                             new_obj_name, guessed_obj_name);
+        if (status != AKI_OK) return status;
+        
         bt_change(guessed_obj, diff_str);
     
-        bt_add_right(guessed_obj, new_obj_name, NULL);
-        bt_add_left(guessed_obj, guessed_obj_name, NULL);
+        BiTreeStatus bt_status = bt_add_right(guessed_obj, new_obj_name, NULL);
+        if (bt_status != BITREE_OK) return AKI_TREE_ERROR;
+
+        bt_status = bt_add_left(guessed_obj, guessed_obj_name, NULL);
+        if (bt_status != BITREE_OK) return AKI_TREE_ERROR;
     }
+
+    return AKI_OK;
 }
 
-static void guess_loop(AkiContext *ctx) {
+void aki_greet() {
+    fputs("Welcome to Akinator " AKINATOR_VERSION "\n", stdout);
+}
+
+static void get_filename(const char *prompt, char *out_filename) {
+    assert(prompt != NULL);
+    assert(out_filename != NULL);
+
+    fputs(prompt, stdout);
+    scanf("%" MAX_FILENAME_LEN_STR "s", out_filename);
+    getchar(); // removing last \n
+}
+
+static AkiStatus handle_guess_action(AkiContext *ctx) {
+    assert(ctx != NULL);
+
     assert(ctx != NULL);
 
     Node *curr = ctx->root;
+    AkiStatus status = 0;
 
     while (true) {
-        AkiAnswer ans = ask("%s", curr->value);
+        AkiAnswer ans = aki_ask("%s", curr->value);
         Node *next_node = NULL;
         BtChildKind next_node_kind = -1;
 
@@ -183,44 +226,19 @@ static void guess_loop(AkiContext *ctx) {
 
         if ((int)next_node_kind != -1) {
             if (next_node == NULL) {
-                add_object(curr, next_node_kind, ctx);
-                save_db(ctx);
-                return;
+                status = aki_add_object(curr, next_node_kind, ctx);
+                if (status != AKI_OK) return status;
+
+                return aki_save_db(ctx);
             } else if (node_is_leaf(next_node)) {
-                present_guess(curr, next_node_kind);
-                save_db(ctx);
-                return;
+                status = aki_present_guess(curr, next_node_kind);
+                if (status != AKI_OK) return status;
+
+                return aki_save_db(ctx);
             }
             curr = next_node;
         }
     }
-}
-
-void aki_greet() {
-    fputs("Welcome to Akinator " AKINATOR_VERSION "\n", stdout);
-}
-
-static void get_filename(const char *prompt, char *out_filename) {
-    assert(prompt != NULL);
-    assert(out_filename != NULL);
-
-    fputs(prompt, stdout);
-    scanf("%" MAX_FILENAME_LEN_STR "s", out_filename);
-    getchar(); // removing last \n
-}
-
-AkiStatus aki_prompt_load_db(AkiContext *ctx) {
-    assert(ctx != NULL);
-
-    get_filename("Enter database filename: ", ctx->db_filename);
-
-    return load_db(ctx);
-}
-
-static AkiStatus handle_guess_action(AkiContext *ctx) {
-    assert(ctx != NULL);
-
-    guess_loop(ctx); 
 
     return AKI_OK;
 }
@@ -241,7 +259,7 @@ static bool find_leaf_cb(Node *node, BtWalkState state, void *ctx) {
     return false;
 }
 
-static Node *aki_find_leaf(Node *node, const char *target) {
+static Node *find_leaf(Node *node, const char *target) {
     assert(node != NULL);
     assert(target != NULL);
 
@@ -302,7 +320,7 @@ static AkiStatus print_definition(stack_t *path_stk, const char *obj_name) {
     return print_trailing_path("--- It's: ", path_stk, prev, elem);
 }
 
-static AkiStatus get_path_to_node(Node *node, stack_t *stack) {
+static AkiStatus aki_path_to_node(Node *node, stack_t *stack) {
     assert(node != NULL);
     assert(stack != NULL);
 
@@ -324,11 +342,11 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
 
     char *obj_name = NULL;
     stack_t path_stk = {};
-    AkiStatus aki_status = AKI_OK;
 
-    obj_name = aki_getline("What's the object you searching for? ");
-    Node *found_obj = aki_find_leaf(ctx->root, obj_name);
+    AkiStatus aki_status = aki_getline(&obj_name, "What's the object you searching for? ");
+    if (aki_status != AKI_OK) goto cleanup;
 
+    Node *found_obj = find_leaf(ctx->root, obj_name);
     if (found_obj == NULL) {
         aki_status = AKI_NO_SUCH_OBJECT;
         goto cleanup;
@@ -337,7 +355,7 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
     StackStatus st_status = STACK_INIT_DBG(&path_stk, 16);
     if (st_status != STACK_OK) { aki_status = AKI_STACK_ERROR; goto cleanup; }
 
-    aki_status = get_path_to_node(found_obj, &path_stk);
+    aki_status = aki_path_to_node(found_obj, &path_stk);
     if (aki_status != AKI_OK) goto cleanup;
 
     aki_status = print_definition(&path_stk, found_obj->value);
@@ -355,22 +373,22 @@ static AkiStatus aki_prompt_path_to_obj(const char *prompt, AkiContext *ctx,
     assert(prompt != NULL);
     assert(stack != NULL);
 
-    char *obj_name = aki_getline(prompt);
-    Node *found_obj = aki_find_leaf(ctx->root, obj_name);
+    char *obj_name = NULL;
+    AkiStatus status = aki_getline(&obj_name, "%s", prompt);
+    if (status != AKI_OK) goto cleanup;
+
+    Node *found_obj = find_leaf(ctx->root, obj_name);
     if (found_obj == NULL) {
-        free(obj_name);
-        return AKI_NO_SUCH_OBJECT;
+        status = AKI_NO_SUCH_OBJECT;
+        goto cleanup;
     }
 
-    AkiStatus status = get_path_to_node(found_obj, stack);
-    if (status != AKI_OK) {
-        free(obj_name);
-        return AKI_NO_SUCH_OBJECT;
-    }
+    status = aki_path_to_node(found_obj, stack);
 
+cleanup:
     free(obj_name);
 
-    return AKI_OK;
+    return status;
 }
 
 static void print_similarity(const char *similarity, bool is_correct) {
@@ -501,7 +519,9 @@ static AkiStatus handle_visualize_action(AkiContext *ctx) {
 void aki_start_game(AkiContext *ctx) {
     AkiStatus status = 0;
     aki_greet();
-    status = aki_prompt_load_db(ctx);
+    get_filename("Enter database filename: ", ctx->db_filename);
+    status = aki_load_db(ctx);
+
     if (status != AKI_OK) {
         fprintf(stderr, "Error: %s\n", aki_error_str(status));
         return;

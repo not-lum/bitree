@@ -13,11 +13,6 @@ typedef enum {
     BT_POSTORDER
 } WalkKind;
 
-typedef struct {
-    char *buff;
-    size_t curr_len;
-} BtStrContext;
-
 BiTreeStatus compile_dot(const char* inp_filename, const char *out_filename);
 void bt_print(Node *root, WalkKind kind, FILE *ctx);
 bool form_cmd(char cmd[MAX_CMD_LEN],

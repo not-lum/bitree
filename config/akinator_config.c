@@ -27,14 +27,11 @@ void ser_dot_str(bitree_elem_t value, FILE *out_file) {
 char *deser_str(char *buff, bitree_elem_t *out_elem) {
     assert(buff != NULL);
     assert(out_elem != NULL);
-    // fprintf(stderr, "DESER_STR called.\n");
-    // fprintf(stderr, "[0]: %c [%p]\n", *buff, buff);
 
     buff++;
     size_t counter = 0;
 
-    while (*(buff + counter) != '"') {
-        // fprintf(stderr, "next: %c\n", *(buff + counter));
+    while (buff[counter] != '"' && buff[counter] != '\0') {
         counter++;
     }
 

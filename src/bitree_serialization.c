@@ -31,7 +31,7 @@ static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
 
         char *end_ptr = BT_DESER_ELEM(buff + *counter + 1, &(*out_node)->value);
         *counter += (size_t)end_ptr - (size_t)buff - *counter + 1;
-    
+
         // fprintf(stderr, "LEFT recursion:\n");
         status = bt_deserialize_body(buff, counter, &(*out_node)->left);
         if (status != BITREE_OK) return status;

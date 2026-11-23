@@ -1,6 +1,7 @@
 #include "../include/bitree_dump.h"
 
 #include <assert.h>
+#include <ctype.h>
 
 
 BiTreeStatus bt_serialize(Node *root,
@@ -13,13 +14,34 @@ BiTreeStatus bt_serialize(Node *root,
     return BITREE_OK;
 }
 
+static size_t count_whitespaces(char *str) {
+    assert(str != NULL);
+
+    size_t counter = 0;
+
+    while (isspace(str[counter])) {
+        counter++;
+    }
+
+    return counter;
+}
+
 static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
                                         Node **out_node) {
     assert(buff != NULL);
     assert(out_node != NULL);
     
-    // fprintf(stderr, "buff: <%s>\n", buff + *counter);
+    // fprintf(stderr, "buff before truncating whitespaces: <%s>\n", buff + *counter);
     // fprintf(stderr, "counter: <%zu>\n", *counter);
+
+    size_t counted_ws = count_whitespaces(buff + *counter);
+    *counter += counted_ws;
+    // fprintf(stderr, "starting whitespaces <%zu>\n", counted_ws);
+    // if (counted_ws != 0) {
+    //     fprintf(stderr, "before truncating whitespaces: <%s>\n", buff + *counter - counted_ws);
+    //     fprintf(stderr, "after truncating whitespaces: <%s>\n", buff + *counter);
+    // }
+
 
     BiTreeStatus status = 0;
 
@@ -29,7 +51,11 @@ static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
             if (status != BITREE_OK) return status;
         }
 
-        char *end_ptr = BT_DESER_ELEM(buff + *counter + 1, &(*out_node)->value);
+        (*counter)++;
+
+        *counter += count_whitespaces(buff + *counter);
+
+        char *end_ptr = BT_DESER_ELEM(buff + *counter, &(*out_node)->value);
         *counter += (size_t)end_ptr - (size_t)buff - *counter + 1;
 
         // fprintf(stderr, "LEFT recursion:\n");

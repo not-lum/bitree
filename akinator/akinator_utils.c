@@ -538,7 +538,7 @@ void aki_start_game(AkiContext *ctx) {
 
         char choice = '\0';
         if (!read_char(&choice))
-            return;
+            continue;
 
         switch (choice) {
             case '1':

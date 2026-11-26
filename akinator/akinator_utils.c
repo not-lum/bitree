@@ -259,17 +259,25 @@ static bool find_leaf_cb(Node *node, BtWalkState state, void *ctx) {
     return false;
 }
 
-static Node *find_leaf(Node *node, const char *target) {
+static AkiStatus aki_find_leaf(Node *node, const char *target,
+                           Node **found_node) {
     assert(node != NULL);
+    assert(found_node != NULL);
     assert(target != NULL);
 
     AkiFindContext find_ctx = { .target = target };
     bt_walk(node, &find_leaf_cb, &find_ctx);
 
-    return find_ctx.found_node;
+    if (find_ctx.found_node == NULL)
+        return AKI_NO_SUCH_OBJECT;
+
+    *found_node = find_ctx.found_node;
+
+    return AKI_OK;
 }
 
-static AkiStatus print_trailing_path(const char *text, stack_t *stack, Node *prev, Node *elem) {
+static AkiStatus aki_print_trailing_path(const char *text, stack_t *stack,
+                                         Node *prev, Node *elem) {
     assert(text != NULL);
     assert(stack != NULL);
     assert(prev != NULL);
@@ -305,7 +313,7 @@ static AkiStatus print_trailing_path(const char *text, stack_t *stack, Node *pre
 }
 
 
-static AkiStatus print_definition(stack_t *path_stk, const char *obj_name) {
+static AkiStatus aki_print_definition(stack_t *path_stk, const char *obj_name) {
     assert(path_stk != NULL);
     assert(obj_name != NULL);
 
@@ -317,7 +325,7 @@ static AkiStatus print_definition(stack_t *path_stk, const char *obj_name) {
     Node *elem = stack_pop(path_stk, &st_status);
     if (st_status != STACK_OK) return AKI_STACK_ERROR;
 
-    return print_trailing_path("--- It's: ", path_stk, prev, elem);
+    return aki_print_trailing_path("--- It's: ", path_stk, prev, elem);
 }
 
 static AkiStatus aki_path_to_node(Node *node, stack_t *stack) {
@@ -346,11 +354,9 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
     AkiStatus aki_status = aki_getline(&obj_name, "What's the object you searching for? ");
     if (aki_status != AKI_OK) goto cleanup;
 
-    Node *found_obj = find_leaf(ctx->root, obj_name);
-    if (found_obj == NULL) {
-        aki_status = AKI_NO_SUCH_OBJECT;
-        goto cleanup;
-    }
+    Node *found_obj = NULL;
+    aki_status = aki_find_leaf(ctx->root, obj_name, &found_obj);
+    if (aki_status != AKI_OK) goto cleanup;
 
     StackStatus st_status = STACK_INIT_DBG(&path_stk, 16);
     if (st_status != STACK_OK) { aki_status = AKI_STACK_ERROR; goto cleanup; }
@@ -358,7 +364,7 @@ static AkiStatus handle_definition_action(AkiContext *ctx) {
     aki_status = aki_path_to_node(found_obj, &path_stk);
     if (aki_status != AKI_OK) goto cleanup;
 
-    aki_status = print_definition(&path_stk, found_obj->value);
+    aki_status = aki_print_definition(&path_stk, found_obj->value);
 
 cleanup:
     free(obj_name);
@@ -377,11 +383,9 @@ static AkiStatus aki_prompt_path_to_obj(const char *prompt, AkiContext *ctx,
     AkiStatus status = aki_getline(&obj_name, "%s", prompt);
     if (status != AKI_OK) goto cleanup;
 
-    Node *found_obj = find_leaf(ctx->root, obj_name);
-    if (found_obj == NULL) {
-        status = AKI_NO_SUCH_OBJECT;
-        goto cleanup;
-    }
+    Node *found_obj = NULL;
+    status = aki_find_leaf(ctx->root, obj_name, &found_obj);
+    if (status != AKI_OK) goto cleanup;
 
     status = aki_path_to_node(found_obj, stack);
 
@@ -401,7 +405,7 @@ static void print_similarity(const char *similarity, bool is_correct) {
     } 
 }
 
-static AkiStatus pop_from_two_stacks(stack_t *stack1, stack_t *stack2,
+static AkiStatus aki_pop_from_two_stacks(stack_t *stack1, stack_t *stack2,
                                      Node **out_node1, Node **out_node2) {
     assert(stack1 != NULL);
     assert(stack2 != NULL);
@@ -418,21 +422,21 @@ static AkiStatus pop_from_two_stacks(stack_t *stack1, stack_t *stack2,
     return AKI_OK;
 }
 
-static AkiStatus print_comparison(stack_t *stack1, stack_t *stack2) {
+static AkiStatus aki_print_comparison(stack_t *stack1, stack_t *stack2) {
     assert(stack1 != NULL);
     assert(stack2 != NULL);
 
     fputc('\n', stdout);
 
     Node *prev1 = NULL, *prev2 = NULL;
-    AkiStatus status = pop_from_two_stacks(stack1, stack2, &prev1, &prev2);
+    AkiStatus status = aki_pop_from_two_stacks(stack1, stack2, &prev1, &prev2);
     if (status != AKI_OK) return status;
 
     Node *elem1 = NULL, *elem2 = NULL;
     bool banner_printed = false;
 
     while (!node_is_leaf(prev1) && !node_is_leaf(prev2)) {
-        status = pop_from_two_stacks(stack1, stack2, &elem1, &elem2);
+        status = aki_pop_from_two_stacks(stack1, stack2, &elem1, &elem2);
         if (status != AKI_OK) return status;
 
         bool went_right1 = prev1->right == elem1;
@@ -459,10 +463,10 @@ static AkiStatus print_comparison(stack_t *stack1, stack_t *stack2) {
             fputs("--- BUT: ", stdout);
     }
 
-    status = print_trailing_path("--- First object is: ", stack1, prev1, elem1);
+    status = aki_print_trailing_path("--- First object is: ", stack1, prev1, elem1);
     if (status != AKI_OK) return status;
 
-    return print_trailing_path("--- Second object is: ", stack2, prev2, elem2);
+    return aki_print_trailing_path("--- Second object is: ", stack2, prev2, elem2);
 }
 
 
@@ -484,7 +488,7 @@ static AkiStatus handle_compare_action(AkiContext *ctx) {
     aki_status = aki_prompt_path_to_obj("Second object name: ", ctx, &stack2);
     if (aki_status != AKI_OK) goto cleanup;
 
-    aki_status = print_comparison(&stack1, &stack2);
+    aki_status = aki_print_comparison(&stack1, &stack2);
 
 cleanup:
     stack_destroy(&stack1);

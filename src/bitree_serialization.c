@@ -29,6 +29,7 @@ static size_t count_whitespaces(char *str) {
 static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
                                         Node **out_node) {
     assert(buff != NULL);
+    assert(counter != NULL);
     assert(out_node != NULL);
     
     // fprintf(stderr, "buff before truncating whitespaces: <%s>\n", buff + *counter);
@@ -36,12 +37,6 @@ static BiTreeStatus bt_deserialize_body(char *buff, size_t *counter,
 
     size_t counted_ws = count_whitespaces(buff + *counter);
     *counter += counted_ws;
-    // fprintf(stderr, "starting whitespaces <%zu>\n", counted_ws);
-    // if (counted_ws != 0) {
-    //     fprintf(stderr, "before truncating whitespaces: <%s>\n", buff + *counter - counted_ws);
-    //     fprintf(stderr, "after truncating whitespaces: <%s>\n", buff + *counter);
-    // }
-
 
     BiTreeStatus status = 0;
 

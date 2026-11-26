@@ -76,6 +76,7 @@ static AkiStatus aki_save_db(AkiContext *ctx) {
 
 static bool read_char(char *out_buff) {
     assert(out_buff != NULL);
+
     scanf(" %c", out_buff);
     char end_char = getchar();
     if (end_char != '\n')
@@ -103,11 +104,10 @@ static AkiAnswer aki_ask(const char *text, ...) {
         if (!read_char(&answer))
             continue;
 
-        if (answer == 'y' || answer == 'Y') {
+        if (answer == 'y' || answer == 'Y')
             res = AKI_YES;
-        } else if (answer == 'n' || answer == 'N') {
+        else if (answer == 'n' || answer == 'N')
             res = AKI_NO;
-        }
     }
 
     va_end(args);
@@ -471,7 +471,6 @@ static AkiStatus handle_compare_action(AkiContext *ctx) {
 
     stack_t stack1 = {}, stack2 = {};
     AkiStatus aki_status = AKI_OK;
-    if (aki_status != AKI_OK) goto cleanup;
 
     StackStatus st_status = STACK_INIT_DBG(&stack1, 16);
     if (st_status != STACK_OK) { aki_status = AKI_STACK_ERROR; goto cleanup; }

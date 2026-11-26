@@ -70,7 +70,6 @@ static bool bt_inorder_print(Node *node, BtWalkState state, void *ctx) {
             fputs("(", file);
             break;
         case BT_IN:
-            // fprintf(file, BITREE_ELEM_FMT, node->value);
             BT_SER_ELEM(node->value, file);
             break;
         case BT_LEAVE:

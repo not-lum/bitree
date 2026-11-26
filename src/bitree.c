@@ -122,7 +122,7 @@ Node *bt_get_right(Node *node) {
     return bt_get_child(node, BT_RIGHT_CHILD);
 }
 
-BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **out_child) { // TODO: do we have to repeat asserts?
+BiTreeStatus bt_add_right(Node *node, bitree_elem_t value, Node **out_child) {
     return bt_add(node, BT_RIGHT_CHILD, value, out_child);
 }
 
@@ -130,7 +130,7 @@ BiTreeStatus bt_add_left(Node *node, bitree_elem_t value, Node **out_child) {
     return bt_add(node, BT_LEFT_CHILD, value, out_child);
 }
 
-void bt_change(Node *node, bitree_elem_t value) { // TODO: is it ok htat its void instead of BiTreeStatus?
+void bt_change(Node *node, bitree_elem_t value) {
     assert(node != NULL);
 
     node->value = value;
